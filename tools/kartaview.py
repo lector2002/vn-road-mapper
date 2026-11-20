@@ -42,8 +42,9 @@ def list_photos(sequence_id):
 def save_frame(data, target):
     image = Image.open(io.BytesIO(data))
     if image.height > image.width:
-        # The capture app saved some landscape shots as portrait images with the scene turned 90 degrees (sky on the
-        # right). Turning them back made all 76 such frames on two Thanh Hoa rides upright.
+        # The capture app saved some landscape shots as portrait images with the scene on its side. On two Thanh Hoa
+        # rides 64 of 76 had the sky on the right and come out upright; the other 12 come out upside down and give
+        # no vote. The photos carry no orientation tag to tell the two apart.
         image.convert("RGB").rotate(90, expand=True).save(target, quality=95)
     else:
         target.write_bytes(data)

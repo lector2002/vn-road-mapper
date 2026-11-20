@@ -5,7 +5,7 @@ Mapping the rural roads in Vietnam that Google Maps cars never reach.
 Phone video from a motorbike → AI tags road **surface, width and flood passability** → pushed to **OpenStreetMap**.
 Goal: riders, ambulances and health stations know which roads are passable, especially in flood season.
 
-> Status: **prototype.** All six stages run end to end on test data and on two public KartaView motorbike rides ([results](docs/evaluation/2026-11-20-kartaview-thanh-hoa.md)). No own ride recorded yet.
+> Status: **prototype.** All six stages run end to end on test data and on two public KartaView motorbike rides ([paved rides](docs/evaluation/2026-11-20-kartaview-thanh-hoa.md), [unpaved roads and OSM widths](docs/evaluation/2026-11-20-kartaview-can-tho.md)). No own ride recorded yet.
 
 ## Pipeline
 
