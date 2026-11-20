@@ -8,7 +8,7 @@
 vn-road-mapper: phone video from a motorbike → AI tags rural Vietnamese roads (surface, width, flood passability) → OpenStreetMap. For riders, ambulances and commune health stations. Public repo: github.com/lector2002/vn-road-mapper.
 
 ## Current State
-Prototype. All six pipeline stages run end to end on test data and on two public KartaView motorbike rides (Thanh Hóa, 2021). On those rides paved roads come out right (47/48 hand sample right, 1 no vote; 28/28 OSM-tagged ways agree). On public helmet-camera footage of unpaved roads (Cần Thơ), 27 of 32 surface votes are right; the errors are dirt called paved. Width works only on narrow roads with both edges in view and is unconfirmed. Mud and flood are untested on real footage. No own rides: the user will not record video, so test data comes from public imagery. CI runs the tests on every push.
+Prototype. All six pipeline stages run end to end on test data and on two public KartaView motorbike rides (Thanh Hóa, 2021). On those rides paved roads come out right (47/48 hand sample right, 1 no vote; 28/28 OSM-tagged ways agree). On public helmet-camera footage of unpaved roads (Cần Thơ), 114 of 142 hand-labelled surface votes are right; 25 of the 28 errors are dirt called paved. Width works only on narrow roads with both edges in view and is unconfirmed. Mud and flood are untested on real footage. No own rides: the user will not record video, so test data comes from public imagery. CI runs the tests on every push.
 
 ## Done
 - [x] frames: video + GPX → frames + `frames.csv` (time, lat, lon, heading).
@@ -22,12 +22,13 @@ Prototype. All six pipeline stages run end to end on test data and on two public
 - [x] First real-ride evaluation: `docs/evaluation/2026-11-20-kartaview-thanh-hoa.md`. Width now rejects fits that contradict frame-filling rows.
 - [x] KartaView importer turns portrait photos (scene on its side) 90°; these caused 7 of 8 false `water` frames. 64 of 76 come out upright, 12 upside down (no vote).
 - [x] Surface label from ground pixels only (`other` left out of the box). Unpaved and OSM-width test: `docs/evaluation/2026-11-20-kartaview-can-tho.md`.
+- [x] 177 Cần Thơ frames labelled by eye (`docs/evaluation/data/`). A linear probe on SegFormer features fixes 20 of 25 dirt-called-paved frames but breaks a whole held-out paved way; not adopted. `docs/evaluation/2026-11-20-can-tho-labels-and-probe.md`.
 
 ## Now
 - Nothing in progress.
 
 ## Next
-1. Fine-tune prep: label KartaView frames (paved/dirt/mud/water) from the Cần Thơ and Thanh Hóa sets; dirt called `paved` is the main error.
+1. Dirt called `paved`: more training roads. Candidates: StreetSurfaceVis (Zenodo, CC BY-SA 4.0, `s_256.zip` 99 MB) and RSCD 2022 (Mendeley, CC BY 4.0, 6.0 GB; the download link returned 502 on 2026-11-20; disk has about 17 GB free). Test with the same pass rule and the Cần Thơ labels.
 2. Find public phone footage of mud and flooded roads (Mapillary needs an API token from the user).
 3. Width: needs footage on a road of known width with a known camera height; not available from public data so far.
 4. Flood layer (PostGIS) from `water_share` across flood-season rides.
@@ -75,6 +76,6 @@ Prototype. All six pipeline stages run end to end on test data and on two public
 - Uploading the KartaView `add` proposals: 2021 imagery, not checked against current roads.
 
 ## Last Session
-- Done: stages 1–6, CI, LICENSE; KartaView importer and real-ride evaluation; width fix; portrait-photo fix in the importer; ground-only surface label; unpaved and OSM-width test; HeiGIT comparison and 20 m piece-vote probe (no code change).
+- Done: stages 1–6, CI, LICENSE; KartaView importer and real-ride evaluation; width fix; portrait-photo fix in the importer; ground-only surface label; unpaved and OSM-width test; HeiGIT comparison and 20 m piece-vote probe (no code change); 177 Cần Thơ hand labels and a SegFormer-feature probe (not adopted).
 - Pending: `output/demo` is a stale broken run (delete by hand).
 - Blocker: none.
