@@ -1,0 +1,12 @@
+opencv-python
+ffmpeg-python
+gpxpy
+torch
+transformers
+numpy
+pillow
+pytest
+shapely
+geopandas
+osmium
+psycopg2-binary
