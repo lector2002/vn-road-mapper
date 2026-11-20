@@ -5,7 +5,7 @@ Mapping the rural roads in Vietnam that Google Maps cars never reach.
 Phone video from a motorbike → AI tags road **surface, width and flood passability** → pushed to **OpenStreetMap**.
 Goal: riders, ambulances and health stations know which roads are passable, especially in flood season.
 
-> Status: **prototype.** All six stages run end to end on test data; no real ride yet.
+> Status: **prototype.** All six stages run end to end on test data and on two public KartaView motorbike rides ([results](docs/evaluation/2026-11-20-kartaview-thanh-hoa.md)). No own ride recorded yet.
 
 ## Pipeline
 
@@ -37,6 +37,8 @@ python -m pipeline.fusion.fuse $R --out $R
 python -m pipeline.export.export $R/ways.csv --out $R
 ```
 
+No ride of your own? `python -m tools.kartaview <sequence-id> --out $R` fetches a public KartaView sequence as frames + `frames.csv` (then skip `frames.extract`).
+
 Needs `ffmpeg` on `PATH`. Each stage's README explains its output. Tests: `python -m pytest tests`.
 
 ## Repo layout
@@ -49,8 +51,9 @@ pipeline/width/
 pipeline/mapmatch/
 pipeline/fusion/
 pipeline/export/    OSM edit proposals + review map
+tools/              KartaView importer (public imagery as test rides)
 data/samples/       small sample clips (large raw video is gitignored)
-docs/
+docs/               decisions/, evaluation/
 ```
 
 ## Roadmap
