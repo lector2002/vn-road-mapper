@@ -59,4 +59,25 @@ The German photos make the result worse. On the paved Thanh Hóa rides the probe
 
 Result: StreetSurfaceVis is not used. Data from Vietnamese roads, taken with similar cameras, is what helps.
 
-Imagery: KartaView, CC BY-SA 4.0, and StreetSurfaceVis, CC BY-SA 4.0, in `output/` only. The label file holds no images.
+## More training roads from Mapillary (Vietnam)
+
+Labels come from OSM: an image is `unpaved` or `paved` when it is within 8 m of a road with that `surface` tag, heads along it (30° or less), and no other road is within 5 m more. Roads that the Cần Thơ and Thanh Hóa test frames use are left out. Images are at most 40 per sequence, 20 m apart.
+
+- Search by area (Cần Thơ, Thanh Hóa, Bến Tre; 18,895 images): 0 images on unpaved-tagged roads, also with 20 m and any heading. Mapillary riders in these areas do not use the roads that OSM tags unpaved. The OSM server timed out for Đắk Lắk and Lào Cai.
+- Search from the roads: 6,000 of Vietnam's 132,803 unpaved-tagged OSM roads, picked at random. 396 have Mapillary images within about 300 m; 489 images match an unpaved road. After the per-sequence limit and spacing: 148 unpaved images from 29 sequences, and 121 paved images with the same camera makes.
+- An eye check of 2 images per unpaved sequence: 42 images come from trains (the railway runs next to an unpaved-tagged road), and others show night, people or a paved road. 84 unpaved images from 11 sequences remain; 61 of them come from 2 dashcam rides.
+
+| check | SegFormer | Cần Thơ only (one ride out) | Mapillary only | Mapillary + Cần Thơ (one ride out) |
+|---|---|---|---|---|
+| Clear Cần Thơ frames right | 112 of 142 | 122 | 108 | 125 |
+| Unpaved called paved | 27 | 9 | 31 | 9 |
+| Paved called unpaved | 3 | 11 | 3 | 8 |
+| Cần Thơ ways right | 5 of 7 | 7 of 7 | 5 of 7 | 6 of 7 |
+| Thanh Hóa frames called unpaved (of 1,008) | 4 | 9 | 5 | 3 |
+| Thanh Hóa ways that change | – | 0 of 68 | 0 of 68 | 0 of 68 |
+
+Mapillary alone does not fix dirt called `paved`. Added to the Cần Thơ labels, it keeps the Thanh Hóa rides unchanged and has 3 fewer paved frames called unpaved. With 84 unpaved images from few rides, a difference of 3 frames can be noise (inferred). The probe still calls 8 paved frames unpaved, so it fails the pass rule and is not in the pipeline.
+
+Result: OSM tags give few usable unpaved images, because Mapillary images on unpaved-tagged roads are rare and many come from trains. More data needs hand labels on untagged Vietnamese roads, not OSM tags.
+
+Imagery: KartaView, CC BY-SA 4.0, StreetSurfaceVis, CC BY-SA 4.0, and Mapillary, CC BY-SA 4.0, in `output/` only. OSM data, ODbL. The label file holds no images.
