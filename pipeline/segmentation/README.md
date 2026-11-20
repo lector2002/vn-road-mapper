@@ -42,7 +42,7 @@ No SegFormer-B2 checkpoint for Mapillary Vistas exists on Hugging Face, and the 
 
 On 12 Wikimedia Commons road photos, the label matched a human reading for 6 of 11 (one photo was unclear).
 
-On 47 hand-labelled frames from KartaView rides on unpaved roads (Cần Thơ, helmet camera), 27 of the 32 frames that voted were right. 5 dirt-road frames were called `paved`; no paved road was called `dirt`. 15 frames gave no vote. Leaving `other` out of the box added 9 right votes and no wrong ones. See `docs/evaluation/2026-11-20-kartaview-can-tho.md`.
+On 47 hand-labelled frames from KartaView rides on unpaved roads (Cần Thơ, helmet camera), 27 of the 32 frames that voted were right. 5 dirt-road frames were called `paved`; no paved road was called `dirt`. 15 frames gave no vote. Leaving `other` out of the box added 9 right votes and no wrong ones. See `docs/evaluation/2026-11-20-kartaview-can-tho.md`. A larger set of 142 voting frames gave 112 right: 27 dirt frames called `paved` and 3 paved frames called `dirt` (`docs/evaluation/2026-11-20-can-tho-labels-and-probe.md`).
 
 ## Options
 

@@ -21,7 +21,7 @@ In the Cần Thơ sequences the camera is a 360° camera on a helmet, cut to a f
 | OSM tag vs eye | 16 of the 47 clear frames on "unpaved" ways show paving: a tiled riverside path, concrete alleys. Either the OSM tags are out of date or KartaView matched the photos to the wrong way (not checked). |
 | Frames that voted, before the change below | 18 right, 5 wrong, 24 no vote |
 | Frames that voted, after the change below | 27 right (12 paved, 15 unpaved), 5 wrong, 15 no vote |
-| Kind of error | All 5 wrong frames are dirt roads called `paved`: ADE20K labels compacted dirt as `road` (4 frames), and one close-up of gravel from the camera that points at the ground. No paved road was called `dirt`. |
+| Kind of error | All 5 wrong frames are dirt roads called `paved`: ADE20K labels compacted dirt as `road` (4 frames), and one close-up of gravel from the camera that points at the ground. No paved road was called `dirt`. A later set of 142 labelled frames found 3 (`2026-11-20-can-tho-labels-and-probe.md`). |
 | Per way, where the hand labels have a clear majority | 4 of 5 agree (2 dirt, 2 paved; one paved way has only 1 hand-labelled frame). The miss is a dirt way with a single `paved` vote, from the camera that points at the ground; export would mark it `weak`. |
 | Per way, mixed or unclear by eye | 3 ways; the model says `paved` on all 3. 1 more way (camera at the ground) got no surface. |
 

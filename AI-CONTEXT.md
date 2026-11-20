@@ -8,7 +8,7 @@
 vn-road-mapper: phone video from a motorbike → AI tags rural Vietnamese roads (surface, width, flood passability) → OpenStreetMap. For riders, ambulances and commune health stations. Public repo: github.com/lector2002/vn-road-mapper.
 
 ## Current State
-Prototype. All six pipeline stages run end to end on test data and on two public KartaView motorbike rides (Thanh Hóa, 2021). On those rides paved roads come out right (47/48 hand sample right, 1 no vote; 28/28 OSM-tagged ways agree). On public helmet-camera footage of unpaved roads (Cần Thơ), 114 of 142 hand-labelled surface votes are right; 25 of the 28 errors are dirt called paved. Width works only on narrow roads with both edges in view and is unconfirmed. Mud and flood are untested on real footage. No own rides: the user will not record video, so test data comes from public imagery. CI runs the tests on every push.
+Prototype. All six pipeline stages run end to end on test data and on two public KartaView motorbike rides (Thanh Hóa, 2021). On those rides paved roads come out right (47/48 hand sample right, 1 no vote; 28/28 OSM-tagged ways agree). On public helmet-camera footage of unpaved roads (Cần Thơ), 112 of 142 surface votes labelled by eye are right; 27 of the 30 errors are dirt called paved. Width works only on narrow roads with both edges in view and is unconfirmed. Mud and flood are untested on real footage. No own rides: the user will not record video, so test data comes from public imagery. CI runs the tests on every push.
 
 ## Done
 - [x] frames: video + GPX → frames + `frames.csv` (time, lat, lon, heading).
@@ -22,7 +22,7 @@ Prototype. All six pipeline stages run end to end on test data and on two public
 - [x] First real-ride evaluation: `docs/evaluation/2026-11-20-kartaview-thanh-hoa.md`. Width now rejects fits that contradict frame-filling rows.
 - [x] KartaView importer turns portrait photos (scene on its side) 90°; these caused 7 of 8 false `water` frames. 64 of 76 come out upright, 12 upside down (no vote).
 - [x] Surface label from ground pixels only (`other` left out of the box). Unpaved and OSM-width test: `docs/evaluation/2026-11-20-kartaview-can-tho.md`.
-- [x] 177 Cần Thơ frames labelled by eye (`docs/evaluation/data/`). A linear probe on SegFormer features fixes 20 of 25 dirt-called-paved frames but breaks a whole held-out paved way; not adopted. `docs/evaluation/2026-11-20-can-tho-labels-and-probe.md`.
+- [x] 177 Cần Thơ frames labelled by eye (`docs/evaluation/data/`). A linear probe on SegFormer features gets 122 of 142 right on unseen rides (SegFormer 112) and 7 of 7 ways (SegFormer 5), but calls 11 paved frames unpaved; not adopted. `docs/evaluation/2026-11-20-can-tho-labels-and-probe.md`.
 
 ## Now
 - Nothing in progress.
