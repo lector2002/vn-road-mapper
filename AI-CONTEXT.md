@@ -28,7 +28,7 @@ Prototype. All six pipeline stages run end to end on test data and on two public
 - Nothing in progress.
 
 ## Next
-1. Dirt called `paved`: more training roads. Candidates: StreetSurfaceVis (Zenodo, CC BY-SA 4.0, `s_256.zip` 99 MB) and RSCD 2022 (Mendeley, CC BY 4.0, 6.0 GB; the download link returned 502 on 2026-11-20; disk has about 17 GB free). Test with the same pass rule and the Cần Thơ labels.
+1. Dirt called `paved`: more Vietnamese training rides. StreetSurfaceVis (German photos) made 238 of 1,008 paved Thanh Hóa frames unpaved, so foreign street photos do not help. Mapillary has more Vietnamese imagery (needs an API token from the user). RSCD 2022 (6.0 GB) is untried: its download link returned 502 on 2026-11-20. Test with the same pass rule and the Cần Thơ labels.
 2. Find public phone footage of mud and flooded roads (Mapillary needs an API token from the user).
 3. Width: needs footage on a road of known width with a known camera height; not available from public data so far.
 4. Flood layer (PostGIS) from `water_share` across flood-season rides.
@@ -76,6 +76,6 @@ Prototype. All six pipeline stages run end to end on test data and on two public
 - Uploading the KartaView `add` proposals: 2021 imagery, not checked against current roads.
 
 ## Last Session
-- Done: stages 1–6, CI, LICENSE; KartaView importer and real-ride evaluation; width fix; portrait-photo fix in the importer; ground-only surface label; unpaved and OSM-width test; HeiGIT comparison and 20 m piece-vote probe (no code change); 177 Cần Thơ hand labels and a SegFormer-feature probe (not adopted).
+- Done: stages 1–6, CI, LICENSE; KartaView importer and real-ride evaluation; width fix; portrait-photo fix in the importer; ground-only surface label; unpaved and OSM-width test; HeiGIT comparison and 20 m piece-vote probe (no code change); 177 Cần Thơ hand labels and a SegFormer-feature probe, with and without StreetSurfaceVis (not adopted).
 - Pending: `output/demo` is a stale broken run (delete by hand).
 - Blocker: none.

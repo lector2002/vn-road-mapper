@@ -42,4 +42,21 @@ Per way (one way out), where the labels have a clear majority: SegFormer's frame
 
 Result: the features separate Vietnamese dirt from paving on rides the probe did not see. But the probe makes 11 paved frames unpaved, so it fails the pass rule and is not in the pipeline. Inferred, not measured: more training rides would reduce those errors. Only 5 rides are available.
 
-Imagery: KartaView, CC BY-SA 4.0, in `output/` only. The label file holds no images.
+## More training roads from StreetSurfaceVis
+
+StreetSurfaceVis (Zenodo 11449977, CC BY-SA 4.0) has 9,122 Mapillary street photos from Germany, each labelled with a surface type. 1,000 photos from its training split were used at 256 × 192 px: 500 `unpaved`, and 500 paved (200 asphalt, 150 concrete, 100 paving stones, 50 sett). Same features and regression as above.
+
+| check | SegFormer | Cần Thơ only (one ride out) | StreetSurfaceVis only | StreetSurfaceVis + Cần Thơ (one ride out) |
+|---|---|---|---|---|
+| Clear Cần Thơ frames right | 112 of 142 | 122 | 115 | 120 |
+| Unpaved called paved | 27 | 9 | 15 | 5 |
+| Paved called unpaved | 3 | 11 | 12 | 17 |
+| Cần Thơ ways right | 5 of 7 | 7 of 7 | 7 of 7 | 7 of 7 |
+| Thanh Hóa frames called unpaved (of 1,008) | 4 | 9 | 300 | 238 |
+| Thanh Hóa ways that change | – | 0 of 68 | 29 of 68 | 26 of 68 |
+
+The German photos make the result worse. On the paved Thanh Hóa rides the probe calls about a quarter of the frames unpaved. A look at 9 of these frames showed asphalt and concrete in every one: blurred, grey phone frames. Inferred: the probe learns how the German photos look (camera, light, size), not only the surface. The small 256 px size may add to this; the 1024 px set was not tried.
+
+Result: StreetSurfaceVis is not used. Data from Vietnamese roads, taken with similar cameras, is what helps.
+
+Imagery: KartaView, CC BY-SA 4.0, and StreetSurfaceVis, CC BY-SA 4.0, in `output/` only. The label file holds no images.
