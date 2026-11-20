@@ -96,3 +96,19 @@ def test_run_without_widths_csv_gives_blank_width(tmp_path):
     way = by_way(fuse(load_run(run)))["5"]
     assert way["width_m"] == ""
     assert way["width_frames"] == 0
+
+
+def test_tilted_frames_do_not_vote_or_count_as_water():
+    frames = [{**frame("1", "dirt"), "tilt": "10"}, {**frame("1", "water"), "tilt": "-85"},
+              {**frame("1", "paved"), "tilt": "120", "width_m": "1.2"}]
+    way = by_way(fuse(frames))["1"]
+    assert way["surface"] == "dirt"
+    assert way["votes"] == 1
+    assert way["water_share"] == 0.0
+    assert way["width_frames"] == 0
+    assert way["frames"] == 3
+
+
+def test_frames_with_unknown_tilt_still_vote():
+    frames = [{**frame("1", "dirt"), "tilt": ""}, frame("1", "dirt")]
+    assert by_way(fuse(frames))["1"]["votes"] == 2

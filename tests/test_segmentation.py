@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from pipeline.segmentation.segment import CLASSES, build_lookup, overlay, road_roi, run, summarize
+from pipeline.segmentation.segment import CLASSES, build_lookup, overlay, road_roi, run, summarize, tilt
 
 FAKE_ID2LABEL = {0: "wall", 1: "road", 2: "dirt track", 3: "water", 4: "tree", 5: "bed "}
 
@@ -49,6 +49,39 @@ def test_summary_shares_add_up_to_one_and_confidence_is_winning_share():
     assert summary["label"] == "paved"
     assert summary["confidence"] == summary["paved"] == pytest.approx(0.75, abs=0.01)
     assert sum(summary[c] for c in CLASSES) == pytest.approx(1.0, abs=0.01)
+
+
+def bottom_half_road():
+    class_map = np.full((100, 100), CLASSES.index("vegetation"))
+    class_map[50:] = CLASSES.index("paved")
+    return class_map
+
+
+def test_tilt_is_near_zero_when_road_is_at_the_bottom():
+    assert abs(tilt(bottom_half_road())) <= 5
+
+
+@pytest.mark.parametrize("side, expected", [("left", -90), ("right", 90)])
+def test_tilt_is_near_90_when_phone_turned_sideways(side, expected):
+    class_map = np.full((100, 100), CLASSES.index("vegetation"))
+    cols = slice(0, 50) if side == "left" else slice(50, 100)
+    class_map[:, cols] = CLASSES.index("paved")
+    assert tilt(class_map) == pytest.approx(expected, abs=5)
+
+
+def test_tilt_is_near_180_when_frame_is_upside_down():
+    assert abs(tilt(np.flipud(bottom_half_road()))) >= 175
+
+
+@pytest.mark.parametrize("road_class", ["paved", "vegetation"])
+def test_tilt_is_unknown_when_road_fills_or_misses_the_frame(road_class):
+    assert tilt(np.full((100, 100), CLASSES.index(road_class))) is None
+
+
+def test_tilt_is_unknown_when_little_road_is_seen():
+    class_map = np.full((100, 100), CLASSES.index("vegetation"))
+    class_map[:, :30] = CLASSES.index("dirt")
+    assert tilt(class_map) is None
 
 
 def test_overlay_keeps_image_size():

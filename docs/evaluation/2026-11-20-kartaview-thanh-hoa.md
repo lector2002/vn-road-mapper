@@ -38,13 +38,14 @@ KartaView sequence 3846189 (Thanh Hóa, 22 km, every 3rd photo: 475 frames, abou
 | Surface per OSM way with a `surface` tag | 18 of 18 agree (all `asphalt`) |
 | Mapmatch vs KartaView, same OSM way | 309 of 435 frames (71%) |
 
-All 4 `water` frames are blurred or tilted shots of pale concrete, so they are false. The `dirt` frame shows a dusty, loose patch. The lower mapmatch agreement may come from the wider frame spacing and divided main roads; which matcher is right was not checked.
+All 4 `water` frames are false. 3 are shots from a phone turned on its side, 1 is a level shot of pale asphalt. The `dirt` frame shows a dusty, loose patch. The lower mapmatch agreement may come from the wider frame spacing and divided main roads; which matcher is right was not checked.
 
 ## What this changed
 
 - Width: on a wide road the road fills the frame in most rows, and the few rows that fit a line were cut short by vehicles or walls. A new check rejects a fit when it predicts a road narrower than the frame in rows where the road actually fills the frame (`pipeline/width/estimate.py`).
 - Width only works where both road edges are in view: narrow rural roads, which are the target. Main roads get no width.
-- Blurred or tilted frames cause the false `water` labels. Skipping frames by a sharpness score is a cheap next fix (not done).
+- Tilt, not blur, causes the false `water` labels: 7 of the 8 `water` frames on both rides come from a phone on its side. A sharpness score (variance of the Laplacian) did not separate them: they scored 7.0–103.6, around the ride median of 8.3–12.6, and the blurriest frames were labeled `paved` correctly. So there is no blur filter.
+- Segmentation now writes a `tilt` column, and fusion skips frames tilted more than 60°. Result: 54 frames skipped (51 really tilted by eye), and 7 of the 8 false `water` frames are gone. No way changed its surface. The one left is the level shot (ride 2, frame 266).
 
 ## What this does not show
 
