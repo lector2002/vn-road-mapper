@@ -11,7 +11,7 @@ python -m pipeline.segmentation.segment output/ride1/frames --out output/ride1
 Output:
 
 ```
-output/ride1/segmentation.csv   filename,label,confidence,paved,dirt,mud,water,vegetation,other,tilt
+output/ride1/segmentation.csv   filename,label,confidence,paved,dirt,mud,water,vegetation,other
 output/ride1/overlays/*.jpg     5 frames spread over the clip, colored by class
 ```
 
@@ -25,9 +25,6 @@ output/ride1/overlays/*.jpg     5 frames spread over the clip, colored by class
 4. `label` is the ground class (`paved`, `dirt`, `mud`, `water`, `vegetation`) with the most pixels in that box. `other` pixels (vehicles, people, bike parts, walls) are left out, because they hide the surface. If less than 40% of the box is ground, `label` is `other`.
 5. `confidence` is the share of the ground pixels in the box that the winning class covers (0–1). It is a pixel share, not a model probability.
 6. The other six columns give the share of every class, so later stages can use them.
-7. `tilt` tells if the phone was upright: the angle in degrees from "road below everything else" to where the road actually sits. 0 is upright, ±90 is a phone on its side. It is blank when the road covers less than 40% or more than 98% of the frame. Fusion skips frames tilted more than 60°.
-
-On two KartaView rides (1,034 frames), 54 frames had a tilt above 60°. By eye, 51 of them were tilted; the other 3 were upright with a vehicle close on one side.
 
 ## Model
 
@@ -45,7 +42,7 @@ No SegFormer-B2 checkpoint for Mapillary Vistas exists on Hugging Face, and the 
 
 On 12 Wikimedia Commons road photos, the label matched a human reading for 6 of 11 (one photo was unclear).
 
-On 47 hand-labelled frames from KartaView rides on unpaved roads (Cần Thơ, helmet camera), 27 of the 31 frames that voted were right. 4 dirt roads were called `paved`; no paved road was called `dirt`. 15 frames gave no vote. Leaving `other` out of the box added 9 right votes and no wrong ones. See `docs/evaluation/2026-11-20-kartaview-can-tho.md`.
+On 47 hand-labelled frames from KartaView rides on unpaved roads (Cần Thơ, helmet camera), 27 of the 32 frames that voted were right. 5 dirt-road frames were called `paved`; no paved road was called `dirt`. 15 frames gave no vote. Leaving `other` out of the box added 9 right votes and no wrong ones. See `docs/evaluation/2026-11-20-kartaview-can-tho.md`.
 
 ## Options
 

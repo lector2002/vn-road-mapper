@@ -38,14 +38,16 @@ KartaView sequence 3846189 (Thanh Hóa, 22 km, every 3rd photo: 475 frames, abou
 | Surface per OSM way with a `surface` tag | 18 of 18 agree (all `asphalt`) |
 | Mapmatch vs KartaView, same OSM way | 309 of 435 frames (71%) |
 
-All 4 `water` frames are false. 3 are shots from a phone turned on its side, 1 is a level shot of pale asphalt. The `dirt` frame shows a dusty, loose patch. The lower mapmatch agreement may come from the wider frame spacing and divided main roads; which matcher is right was not checked.
+All 4 `water` frames are false. 3 are portrait photos with the road on its side (see below), 1 is a level shot of pale asphalt (frame 266). The `dirt` frame shows a dusty, loose patch. The lower mapmatch agreement may come from the wider frame spacing and divided main roads; which matcher is right was not checked.
 
 ## What this changed
 
 - Width: on a wide road the road fills the frame in most rows, and the few rows that fit a line were cut short by vehicles or walls. A new check rejects a fit when it predicts a road narrower than the frame in rows where the road actually fills the frame (`pipeline/width/estimate.py`).
 - Width only works where both road edges are in view: narrow rural roads, which are the target. Main roads get no width.
-- Tilt, not blur, causes the false `water` labels: 7 of the 8 `water` frames on both rides come from a phone on its side. A sharpness score (variance of the Laplacian) did not separate them: they scored 7.0–103.6, around the ride median of 8.3–12.6, and the blurriest frames were labeled `paved` correctly. So there is no blur filter.
-- Segmentation now writes a `tilt` column, and fusion skips frames tilted more than 60°. Result: 54 frames skipped (51 really tilted by eye), and 7 of the 8 false `water` frames are gone. No way changed its surface. The one left is the level shot (ride 2, frame 266).
+- False `water`: 76 of the 1,034 photos on both rides are portrait images (2160×3840) with the scene turned 90°, sky on the right. The capture app saved landscape shots as portrait. 7 of the 8 false `water` frames were among them. `tools/kartaview.py` now turns portrait photos 90° back; all 76 came out upright, and after a re-run only 1 false `water` frame is left (ride 2, frame 266). No way changed its surface; 6 ways lost a false `water_share`.
+- A sharpness score (variance of the Laplacian) did not explain the false `water`: those frames scored 7.0–103.6, around the ride median of 8.3–12.6, and the blurriest frames were labeled `paved` correctly. So there is no blur filter.
+- A tilt check (skip frames where the road is not at the bottom) was tried first. It caught 51 of the sideways frames but also skipped 3 good ones, and with the importer fix it only had false hits, so it was removed.
+- The tables above are from the first run. After the re-run (turned photos, and the surface label from ground pixels only, see `2026-11-20-kartaview-can-tho.md`): ride 1 is 539 `paved`, 3 `dirt`, 0 `water`, 17 `vegetation`/`other`; ride 2 is 465 `paved`, 1 `dirt`, 1 `water`, 8 `other`. The 48-frame hand sample is 47 right and 1 `other` (no vote; frame 132, one of the turned photos). Width: 22 frames instead of 21. Export on ride 1: 20 `add`, 7 `agree`, 12 `weak`.
 
 ## What this does not show
 

@@ -8,7 +8,7 @@
 vn-road-mapper: phone video from a motorbike → AI tags rural Vietnamese roads (surface, width, flood passability) → OpenStreetMap. For riders, ambulances and commune health stations. Public repo: github.com/lector2002/vn-road-mapper.
 
 ## Current State
-Prototype. All six pipeline stages run end to end on test data and on two public KartaView motorbike rides (Thanh Hóa, 2021). On those rides paved roads come out right (48/48 hand sample; 28/28 OSM-tagged ways agree). On public helmet-camera footage of unpaved roads (Cần Thơ), 27 of 31 surface votes are right; the errors are dirt called paved. Width works only on narrow roads with both edges in view and is unconfirmed. Mud and flood are untested on real footage. No own rides: the user will not record video, so test data comes from public imagery. CI runs the tests on every push.
+Prototype. All six pipeline stages run end to end on test data and on two public KartaView motorbike rides (Thanh Hóa, 2021). On those rides paved roads come out right (48/48 hand sample; 28/28 OSM-tagged ways agree). On public helmet-camera footage of unpaved roads (Cần Thơ), 27 of 32 surface votes are right; the errors are dirt called paved. Width works only on narrow roads with both edges in view and is unconfirmed. Mud and flood are untested on real footage. No own rides: the user will not record video, so test data comes from public imagery. CI runs the tests on every push.
 
 ## Done
 - [x] frames: video + GPX → frames + `frames.csv` (time, lat, lon, heading).
@@ -20,7 +20,7 @@ Prototype. All six pipeline stages run end to end on test data and on two public
 - [x] CI (GitHub Actions), MIT LICENSE.
 - [x] `tools/kartaview.py`: public KartaView sequence → `frames/` + `frames.csv` (stand-in for a real ride).
 - [x] First real-ride evaluation: `docs/evaluation/2026-11-20-kartaview-thanh-hoa.md`. Width now rejects fits that contradict frame-filling rows.
-- [x] Tilt check: segmentation writes `tilt`, fusion skips frames over 60° (removed 7 of 8 false `water` frames).
+- [x] KartaView importer turns portrait photos (scene on its side) upright; these caused 7 of 8 false `water` frames.
 - [x] Surface label from ground pixels only (`other` left out of the box). Unpaved and OSM-width test: `docs/evaluation/2026-11-20-kartaview-can-tho.md`.
 
 ## Now
@@ -63,7 +63,7 @@ Prototype. All six pipeline stages run end to end on test data and on two public
 - 2026-11-20: Export proposes only generic `paved`/`unpaved`, and only where OSM has no tag or the other family; never uploads.
 - 2026-11-20: Frame time = video start + index / fps (measured with ffmpeg showinfo).
 - 2026-11-20: `confidence` = share of the ground pixels in the road box that the winning class covers (`other` left out, at least 40% ground), not a model probability.
-- 2026-11-20: No blur filter: blur scores did not separate the false `water` frames; tilt did.
+- 2026-11-20: No blur filter and no tilt filter: the false `water` frames were portrait photos with the scene on its side, fixed in the importer. A tilt check in fusion was tried and removed (only false hits left after the importer fix).
 
 ## Avoid
 - Uploading `changes.osc` from test runs: the demo proposals come from photos of other roads.
@@ -74,6 +74,6 @@ Prototype. All six pipeline stages run end to end on test data and on two public
 - Uploading the KartaView `add` proposals: 2021 imagery, not checked against current roads.
 
 ## Last Session
-- Done: stages 1–6, CI, LICENSE; KartaView importer and real-ride evaluation; width fix; tilt check; ground-only surface label; unpaved and OSM-width test.
+- Done: stages 1–6, CI, LICENSE; KartaView importer and real-ride evaluation; width fix; portrait-photo fix in the importer; ground-only surface label; unpaved and OSM-width test.
 - Pending: `output/demo` is a stale broken run (delete by hand).
 - Blocker: none.

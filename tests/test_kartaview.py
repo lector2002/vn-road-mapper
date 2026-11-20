@@ -1,6 +1,8 @@
+import io
 import json
 
 import pytest
+from PIL import Image
 
 from tools import kartaview
 
@@ -35,12 +37,33 @@ def test_api_error_in_body_is_raised(monkeypatch):
         kartaview.list_photos("1")
 
 
+def jpeg(width, height, right_half="black"):
+    image = Image.new("RGB", (width, height), "black")
+    image.paste(Image.new("RGB", (width // 2, height), right_half), (width // 2, 0))
+    buf = io.BytesIO()
+    image.save(buf, "JPEG")
+    return buf.getvalue()
+
+
 def test_run_writes_frames_csv_and_kartaview_way_ids(tmp_path, monkeypatch):
+    landscape = jpeg(64, 36)
     monkeypatch.setattr(kartaview, "list_photos", lambda sid: [photo(0), photo(1, shot="2021-09-19 23:29:58.000")])
-    monkeypatch.setattr(kartaview, "get", lambda url: b"jpeg-bytes")
+    monkeypatch.setattr(kartaview, "get", lambda url: landscape)
 
     rows = kartaview.run("1", tmp_path)
 
     assert [r["timestamp"] for r in rows] == ["2021-09-19T23:29:55.000Z", "2021-09-19T23:29:58.000Z"]
-    assert (tmp_path / "frames" / "000002.jpg").read_bytes() == b"jpeg-bytes"
+    assert (tmp_path / "frames" / "000002.jpg").read_bytes() == landscape
     assert "850282873" in (tmp_path / "kartaview.csv").read_text(encoding="utf-8")
+
+
+def test_portrait_photo_with_sky_on_the_right_is_turned_upright(tmp_path, monkeypatch):
+    monkeypatch.setattr(kartaview, "list_photos", lambda sid: [photo(0)])
+    monkeypatch.setattr(kartaview, "get", lambda url: jpeg(36, 64, right_half="white"))
+
+    kartaview.run("1", tmp_path)
+
+    frame = Image.open(tmp_path / "frames" / "000001.jpg").convert("L")
+    assert frame.size == (64, 36)
+    assert frame.getpixel((32, 2)) > 200
+    assert frame.getpixel((32, 33)) < 50

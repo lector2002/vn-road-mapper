@@ -1,6 +1,5 @@
 import argparse
 import csv
-import math
 import sys
 import time
 from pathlib import Path
@@ -23,8 +22,7 @@ ADE20K_TO_CLASS = {
     "tree": "vegetation", "grass": "vegetation", "plant": "vegetation", "field": "vegetation",
     "flower": "vegetation", "palm": "vegetation",
 }
-CSV_FIELDS = ["filename", "label", "confidence", *CLASSES, "tilt"]
-ROAD = [CLASSES.index(c) for c in ("paved", "dirt", "mud", "water")]
+CSV_FIELDS = ["filename", "label", "confidence", *CLASSES]
 # The road in front of a bike-mounted phone: bottom 40% of the frame, middle 60% of the width.
 ROI_TOP, ROI_LEFT, ROI_RIGHT = 0.6, 0.2, 0.8
 # Vehicles, people and bike parts in the box are "other"; they hide the surface rather than describe it.
@@ -58,22 +56,6 @@ def summarize(class_map):
         "confidence": round(float(confidence), 3),
         **{c: round(float(s), 3) for c, s in zip(CLASSES, shares)},
     }
-
-
-def tilt(class_map):
-    """Angle in degrees from "road below the rest" to where the road actually sits: 0 upright, +-90 phone on its side.
-
-    None unless the road covers 40-98% of the frame. Below 40%, grassy or muddy village roads upright in the frame
-    read as tilted (6 of 37 flagged frames on a KartaView ride); a phone on its side still shows mostly road.
-    """
-    road = np.isin(class_map, ROAD)
-    if not 0.4 < road.mean() < 0.98:
-        return None
-    h, w = class_map.shape
-    ys, xs = np.mgrid[0:h, 0:w]
-    dy = (ys[road].mean() - ys[~road].mean()) / h
-    dx = (xs[road].mean() - xs[~road].mean()) / w
-    return round(math.degrees(math.atan2(dx, dy)))
 
 
 def overlay(image, class_map, summary):
@@ -118,8 +100,7 @@ def run(frames_dir, out_dir, overlays=5, model_id=DEFAULT_MODEL):
         image = Image.open(path).convert("RGB")
         class_map = segmenter.class_map(image)
         summary = summarize(class_map)
-        angle = tilt(class_map)
-        rows.append({"filename": path.name, **summary, "tilt": "" if angle is None else angle})
+        rows.append({"filename": path.name, **summary})
         if i in keep:
             overlay(image, class_map, summary).save(out_dir / "overlays" / path.name, quality=85)
     seconds_per_frame = (time.perf_counter() - started) / len(frames)

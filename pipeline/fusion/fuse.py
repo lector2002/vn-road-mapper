@@ -6,8 +6,6 @@ from pathlib import Path
 from statistics import median
 
 SURFACES = ["paved", "dirt", "mud"]
-# Phones that swing sideways in the mount see the road on one side; those frames gave false "water" on KartaView rides.
-MAX_TILT = 60
 CSV_FIELDS = ["way_id", "surface", "agreement", "votes", "frames", "passes", "water_share", "width_m", "width_frames"]
 
 
@@ -26,22 +24,17 @@ def load_run(run_dir):
                 for m in csv.DictReader(f) if m["way_id"] and m["filename"] in labels]
 
 
-def upright(frame, max_tilt=MAX_TILT):
-    return not frame.get("tilt") or abs(float(frame["tilt"])) <= max_tilt
-
-
-def fuse(frames, min_confidence=0.5, max_tilt=MAX_TILT):
+def fuse(frames, min_confidence=0.5):
     by_way = defaultdict(list)
     for f in frames:
         by_way[f["way_id"]].append(f)
     ways = []
     for way_id, group in by_way.items():
-        usable = [f for f in group if upright(f, max_tilt)]
-        sure = [f for f in usable if float(f["confidence"]) >= min_confidence]
+        sure = [f for f in group if float(f["confidence"]) >= min_confidence]
         votes = Counter(f["label"] for f in sure if f["label"] in SURFACES)
         n_votes = sum(votes.values())
         surface, top = votes.most_common(1)[0] if votes else ("", 0)
-        widths = [float(f["width_m"]) for f in usable if f.get("width_m")]
+        widths = [float(f["width_m"]) for f in group if f.get("width_m")]
         ways.append({
             "way_id": way_id,
             "surface": surface,
@@ -61,13 +54,12 @@ def main(argv=None):
     p.add_argument("runs", type=Path, nargs="+", help="run folders, each with matches.csv and segmentation.csv (widths.csv optional)")
     p.add_argument("--out", type=Path, required=True, help="output folder (gets ways.csv)")
     p.add_argument("--min-confidence", type=float, default=0.5, help="frames below this confidence do not vote")
-    p.add_argument("--max-tilt", type=float, default=MAX_TILT, help="frames tilted more than this (degrees) are skipped")
     args = p.parse_args(argv)
     try:
         frames = [f for run in args.runs for f in load_run(run)]
     except FileNotFoundError as e:
         sys.exit(f"error: {e}")
-    ways = fuse(frames, args.min_confidence, args.max_tilt)
+    ways = fuse(frames, args.min_confidence)
     args.out.mkdir(parents=True, exist_ok=True)
     csv_path = args.out / "ways.csv"
     with open(csv_path, "w", newline="", encoding="utf-8") as f:

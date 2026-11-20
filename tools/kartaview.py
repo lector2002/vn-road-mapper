@@ -4,11 +4,14 @@ KartaView imagery is CC BY-SA 4.0. Keep downloaded frames out of the repo.
 """
 import argparse
 import csv
+import io
 import json
 import sys
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
+
+from PIL import Image
 
 
 API = "https://api.kartaview.org/2.0/photo/"
@@ -36,6 +39,16 @@ def list_photos(sequence_id):
     return sorted(photos, key=lambda p: int(p["sequenceIndex"]))
 
 
+def save_frame(data, target):
+    image = Image.open(io.BytesIO(data))
+    if image.height > image.width:
+        # The capture app saved some landscape shots as portrait images with the scene turned 90 degrees (sky on the
+        # right). Turning them back made all 76 such frames on two Thanh Hoa rides upright.
+        image.convert("RGB").rotate(90, expand=True).save(target, quality=95)
+    else:
+        target.write_bytes(data)
+
+
 def frame_row(index, photo):
     # KartaView shot dates carry no timezone; only differences between frames matter downstream.
     t = datetime.strptime(photo["shotDate"][:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
@@ -60,7 +73,7 @@ def run(sequence_id, out_dir, every=1):
         row = frame_row(i, photo)
         target = frames_dir / row["filename"]
         if not target.exists():
-            target.write_bytes(get(photo["fileurlLTh"]))
+            save_frame(get(photo["fileurlLTh"]), target)
         rows.append(row)
         refs.append({"filename": row["filename"], "photo_id": photo["id"], "kartaview_way_id": photo.get("wayId") or ""})
     for name, fields, data in [("frames.csv", FRAME_FIELDS, rows),
