@@ -30,23 +30,25 @@ def road_span(road_row):
     return left, right
 
 
-def clean_spans(class_map):
-    """(row, span_px) for sampled rows where the road run does not touch the image edge."""
+def sample_spans(class_map):
+    """Rows where the road run is fully in view as (row, span_px), and rows where it touches the image edge."""
     road = np.isin(class_map, ROAD)
     height, width = road.shape
-    spans = []
+    clean, clipped = [], []
     for frac in SAMPLE_ROWS:
         y = int(height * frac)
         span = road_span(road[y])
         if span and span[0] > 0 and span[1] < width - 1:
-            spans.append((y, span[1] - span[0] + 1))
-    return spans
+            clean.append((y, span[1] - span[0] + 1))
+        elif span:
+            clipped.append(y)
+    return clean, clipped
 
 
 def estimate_width(class_map, camera_height_m):
     # On flat ground the road's pixel width grows linearly with the row: span = W * (y - horizon) / h.
     # Fitting that line gives the horizon and W without knowing the lens focal length.
-    spans = clean_spans(class_map)
+    spans, clipped = sample_spans(class_map)
     blank = {"width_m": "", "horizon": "", "rows": len(spans), "residual": ""}
     if len(spans) < MIN_ROWS:
         return blank
@@ -59,6 +61,10 @@ def estimate_width(class_map, camera_height_m):
     result = {"horizon": round(horizon / class_map.shape[0], 3), "rows": len(spans), "residual": round(residual, 3)}
     # The top sampled road row sits just under the vanishing point, so allow fit noise of a few rows.
     if residual > MAX_RESIDUAL or horizon > ys.min() + 0.05 * class_map.shape[0]:
+        return {**result, "width_m": ""}
+    # A row where the road fills the frame must be one where the fitted road is at least frame-wide.
+    # If not, the clean rows were cut short by a car, a shadow or a wall, not by the road edges.
+    if any(slope * y + intercept < 0.9 * class_map.shape[1] for y in clipped):
         return {**result, "width_m": ""}
     return {**result, "width_m": round(float(slope * camera_height_m), 2)}
 

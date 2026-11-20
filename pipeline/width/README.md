@@ -24,10 +24,19 @@ The fusion stage adds the median width of each OSM way when it finds `widths.csv
 3. On flat, straight ground the road's pixel width grows in a straight line with the row: `span = width × (row − horizon) / camera_height`.
 4. Fit that line. The slope × camera height gives the width. The line crosses zero at the horizon, so the phone's tilt and lens focal length are not needed.
 
-`width_m` is blank when fewer than 4 rows are usable, when the fit is poor (`residual` above 0.1), or when the fitted horizon falls below the road. A blank is better than a wrong number.
+`width_m` is blank when:
+
+- fewer than 4 rows are usable,
+- the fit is poor (`residual` above 0.1),
+- the fitted horizon falls below the road, or
+- the fit predicts a road narrower than the frame in rows where the road fills the frame (the rows were cut short by a car, shadow or wall).
+
+A blank is better than a wrong number.
 
 ## Limits
 
 - It assumes flat, straight road and a phone without sideways tilt. Hills and bends give no width or a wrong one.
 - The road mask includes dirt shoulders, so a paved road with dirt edges measures as the full width.
+- Both road edges must be in view. On a real motorbike ride most main-road frames got no width, while narrow village roads did (`docs/evaluation/2026-11-20-kartaview-thanh-hoa.md`). A wide-angle lens helps.
+- A phone tilted far down makes the width slightly too small (about 10% at 25° down).
 - Not yet checked against a road of known width. See `docs/decisions/2026-11-20-width-method.md`.

@@ -27,11 +27,11 @@ def test_width_of_straight_road_is_recovered_with_unknown_horizon(road_m, camera
     assert result["horizon"] == pytest.approx(horizon, abs=0.01)
 
 
-def test_rows_where_road_fills_the_frame_are_left_out():
-    class_map = straight_road(4.0, 1.1, 0.5)
-    class_map[650:, :] = PAVED
+def test_rows_where_a_wide_road_fills_the_frame_are_left_out():
+    class_map = straight_road(5.0, 1.1, 0.5)
+    assert (class_map[-1] == PAVED).all()
     result = estimate_width(class_map, 1.1)
-    assert result["width_m"] == pytest.approx(4.0, rel=0.03)
+    assert result["width_m"] == pytest.approx(5.0, rel=0.03)
 
 
 def test_width_scales_with_camera_height():
@@ -71,3 +71,11 @@ def test_overlay_keeps_image_size():
     class_map = straight_road(3.0, 1.1, 0.5)
     result = estimate_width(class_map, 1.1)
     assert draw(Image.new("RGB", (1280, 720)), class_map, result).size == (1280, 720)
+
+
+def test_no_width_when_short_spans_contradict_rows_where_road_fills_the_frame():
+    class_map = np.full((720, 1280), PAVED)
+    for y in range(300, 420, 10):
+        class_map[y, :] = VEG
+        class_map[y, 600:600 + (y - 250)] = PAVED
+    assert estimate_width(class_map, 1.1)["width_m"] == ""
