@@ -22,8 +22,8 @@ output/ride1/overlays/*.jpg     5 frames spread over the clip, colored by class
 1. The model labels every pixel with one of 150 ADE20K classes.
 2. Each ADE20K class maps to one of our 6 classes (`ADE20K_TO_CLASS` in `segment.py`).
 3. Only the road in front of the bike counts: the bottom 40% of the frame, middle 60% of the width (the yellow box in the overlays).
-4. `label` is the class with the most pixels in that box.
-5. `confidence` is the share of the box that class covers (0–1). It is a pixel share, not a model probability.
+4. `label` is the ground class (`paved`, `dirt`, `mud`, `water`, `vegetation`) with the most pixels in that box. `other` pixels (vehicles, people, bike parts, walls) are left out, because they hide the surface. If less than 40% of the box is ground, `label` is `other`.
+5. `confidence` is the share of the ground pixels in the box that the winning class covers (0–1). It is a pixel share, not a model probability.
 6. The other six columns give the share of every class, so later stages can use them.
 7. `tilt` tells if the phone was upright: the angle in degrees from "road below everything else" to where the road actually sits. 0 is upright, ±90 is a phone on its side. It is blank when the road covers less than 40% or more than 98% of the frame. Fusion skips frames tilted more than 60°.
 
@@ -44,6 +44,8 @@ No SegFormer-B2 checkpoint for Mapillary Vistas exists on Hugging Face, and the 
 - The frame shape matters: the same photo with black side bars changed 2 of 12 labels (a flood photo went from `water` to `paved`). Feed full camera frames, not letterboxed ones.
 
 On 12 Wikimedia Commons road photos, the label matched a human reading for 6 of 11 (one photo was unclear).
+
+On 47 hand-labelled frames from KartaView rides on unpaved roads (Cần Thơ, helmet camera), 27 of the 31 frames that voted were right. 4 dirt roads were called `paved`; no paved road was called `dirt`. 15 frames gave no vote. Leaving `other` out of the box added 9 right votes and no wrong ones. See `docs/evaluation/2026-11-20-kartaview-can-tho.md`.
 
 ## Options
 

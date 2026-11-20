@@ -27,6 +27,8 @@ CSV_FIELDS = ["filename", "label", "confidence", *CLASSES, "tilt"]
 ROAD = [CLASSES.index(c) for c in ("paved", "dirt", "mud", "water")]
 # The road in front of a bike-mounted phone: bottom 40% of the frame, middle 60% of the width.
 ROI_TOP, ROI_LEFT, ROI_RIGHT = 0.6, 0.2, 0.8
+# Vehicles, people and bike parts in the box are "other"; they hide the surface rather than describe it.
+MIN_GROUND = 0.4
 
 
 def build_lookup(id2label, mapping=ADE20K_TO_CLASS):
@@ -44,10 +46,16 @@ def road_roi(height, width):
 def summarize(class_map):
     region = class_map[road_roi(*class_map.shape)]
     shares = np.bincount(region.ravel(), minlength=len(CLASSES)) / region.size
-    best = int(shares.argmax())
+    other = CLASSES.index("other")
+    ground = 1 - shares[other]
+    if ground < MIN_GROUND:
+        best, confidence = other, shares[other]
+    else:
+        best = int(np.where(np.arange(len(CLASSES)) == other, -1, shares).argmax())
+        confidence = shares[best] / ground
     return {
         "label": CLASSES[best],
-        "confidence": round(float(shares[best]), 3),
+        "confidence": round(float(confidence), 3),
         **{c: round(float(s), 3) for c, s in zip(CLASSES, shares)},
     }
 

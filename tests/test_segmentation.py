@@ -84,6 +84,26 @@ def test_tilt_is_unknown_when_little_road_is_seen():
     assert tilt(class_map) is None
 
 
+def test_vehicles_in_the_box_do_not_lower_confidence_in_the_surface():
+    class_map = frame_with_road("dirt")
+    rows, cols = road_roi(*class_map.shape)
+    region = class_map[rows, cols]
+    region[:, : region.shape[1] // 3] = CLASSES.index("other")
+    summary = summarize(class_map)
+    assert summary["label"] == "dirt"
+    assert summary["confidence"] == 1.0
+    assert summary["other"] == pytest.approx(0.33, abs=0.02)
+
+
+def test_box_mostly_covered_by_non_ground_is_labeled_other():
+    class_map = frame_with_road("other")
+    rows, cols = road_roi(*class_map.shape)
+    class_map[rows, cols][: 10] = CLASSES.index("paved")
+    summary = summarize(class_map)
+    assert summary["label"] == "other"
+    assert summary["confidence"] == summary["other"]
+
+
 def test_overlay_keeps_image_size():
     class_map = frame_with_road("water")
     image = Image.new("RGB", (100, 100), "white")
