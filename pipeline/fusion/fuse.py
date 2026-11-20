@@ -1,0 +1,64 @@
+import argparse
+import csv
+import sys
+from collections import Counter, defaultdict
+from pathlib import Path
+
+SURFACES = ["paved", "dirt", "mud"]
+CSV_FIELDS = ["way_id", "surface", "agreement", "votes", "frames", "passes", "water_share"]
+
+
+def load_run(run_dir):
+    """Join one run's matches.csv and segmentation.csv on filename."""
+    run_dir = Path(run_dir)
+    with open(run_dir / "segmentation.csv", encoding="utf-8") as f:
+        labels = {r["filename"]: r for r in csv.DictReader(f)}
+    with open(run_dir / "matches.csv", encoding="utf-8") as f:
+        return [{**labels[m["filename"]], "way_id": m["way_id"], "run": str(run_dir)}
+                for m in csv.DictReader(f) if m["way_id"] and m["filename"] in labels]
+
+
+def fuse(frames, min_confidence=0.5):
+    by_way = defaultdict(list)
+    for f in frames:
+        by_way[f["way_id"]].append(f)
+    ways = []
+    for way_id, group in by_way.items():
+        sure = [f for f in group if float(f["confidence"]) >= min_confidence]
+        votes = Counter(f["label"] for f in sure if f["label"] in SURFACES)
+        n_votes = sum(votes.values())
+        surface, top = votes.most_common(1)[0] if votes else ("", 0)
+        ways.append({
+            "way_id": way_id,
+            "surface": surface,
+            "agreement": round(top / n_votes, 3) if n_votes else "",
+            "votes": n_votes,
+            "frames": len(group),
+            "passes": len({f["run"] for f in group}),
+            "water_share": round(sum(f["label"] == "water" for f in sure) / len(sure), 3) if sure else "",
+        })
+    return sorted(ways, key=lambda w: -w["frames"])
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(description="Combine frame labels from one or more rides into one surface per OSM way.")
+    p.add_argument("runs", type=Path, nargs="+", help="run folders, each with matches.csv and segmentation.csv")
+    p.add_argument("--out", type=Path, required=True, help="output folder (gets ways.csv)")
+    p.add_argument("--min-confidence", type=float, default=0.5, help="frames below this confidence do not vote")
+    args = p.parse_args(argv)
+    try:
+        frames = [f for run in args.runs for f in load_run(run)]
+    except FileNotFoundError as e:
+        sys.exit(f"error: {e}")
+    ways = fuse(frames, args.min_confidence)
+    args.out.mkdir(parents=True, exist_ok=True)
+    csv_path = args.out / "ways.csv"
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+        writer.writeheader()
+        writer.writerows(ways)
+    print(f"{len(frames)} matched frames from {len(args.runs)} run(s) -> {len(ways)} ways -> {csv_path}")
+
+
+if __name__ == "__main__":
+    main()
