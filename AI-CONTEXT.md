@@ -63,6 +63,7 @@ Prototype. All six pipeline stages run end to end on test data and on two public
 - 2026-11-20: Export proposes only generic `paved`/`unpaved`, and only where OSM has no tag or the other family; never uploads.
 - 2026-11-20: Frame time = video start + index / fps (measured with ffmpeg showinfo).
 - 2026-11-20: `confidence` = share of the ground pixels in the road box that the winning class covers (`other` left out, at least 40% ground), not a model probability.
+- 2026-11-20: No 20 m piece vote and no 10 m distance cut in fusion (from SurfaceAI): on KartaView runs they changed no way for the better, and the cut emptied ways on a wide road. Re-check on phone video with stops. HeiGIT Mapillary predictions cover none of our ways. `docs/evaluation/2026-11-20-heigit-and-piece-vote.md`.
 - 2026-11-20: No blur filter and no tilt filter: the false `water` frames were portrait photos with the scene on its side, fixed in the importer. A tilt check in fusion was tried and removed (only false hits left after the importer fix).
 
 ## Avoid
@@ -74,6 +75,6 @@ Prototype. All six pipeline stages run end to end on test data and on two public
 - Uploading the KartaView `add` proposals: 2021 imagery, not checked against current roads.
 
 ## Last Session
-- Done: stages 1–6, CI, LICENSE; KartaView importer and real-ride evaluation; width fix; portrait-photo fix in the importer; ground-only surface label; unpaved and OSM-width test.
+- Done: stages 1–6, CI, LICENSE; KartaView importer and real-ride evaluation; width fix; portrait-photo fix in the importer; ground-only surface label; unpaved and OSM-width test; HeiGIT comparison and 20 m piece-vote probe (no code change).
 - Pending: `output/demo` is a stale broken run (delete by hand).
 - Blocker: none.
