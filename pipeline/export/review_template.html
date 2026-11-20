@@ -49,6 +49,7 @@ const layer = L.geoJSON(DATA, {
       Proposed: ${esc(p.proposed_surface || "nothing")}<br>
       Model: ${esc(p.surface || "no vote")}, agreement ${esc(p.agreement)}, ${esc(p.votes)} votes<br>
       Frames showing water: ${esc(p.water_share)}<br>
+      Estimated width: ${p.width_m ? esc(p.width_m) + " m" : "not measured"}<br>
       <a href="https://www.openstreetmap.org/way/${esc(p.way_id)}" target="_blank" rel="noopener">open in OSM</a>`);
   },
 }).addTo(map);

@@ -9,7 +9,7 @@ from pathlib import Path
 
 DEFAULT_URL = "https://valhalla1.openstreetmap.de"
 CSV_FIELDS = ["filename", "way_id", "matched_lat", "matched_lon", "distance_m"]
-USER_AGENT = "vn-road-mapper/0.1 (+https://github.com/lector2002/vn-road-mapper)"
+USER_AGENT = "vn-road-mapper/0.1"
 
 
 def build_request(rows, costing):

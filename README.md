@@ -5,7 +5,7 @@ Mapping the rural roads in Vietnam that Google Maps cars never reach.
 Phone video from a motorbike → AI tags road **surface, width and flood passability** → pushed to **OpenStreetMap**.
 Goal: riders, ambulances and health stations know which roads are passable, especially in flood season.
 
-> Status: **prototype.** `frames` and `segmentation` stages work on test data; no real ride yet.
+> Status: **prototype.** All six stages run end to end on test data; no real ride yet.
 
 ## Pipeline
 
@@ -14,11 +14,30 @@ capture (phone video + GPS/IMU)
   → frames        ffmpeg, ~2 fps, synced to GPS track
   → segmentation  SegFormer-B2 (ADE20K baseline) fine-tuned on VN frames
                   classes: paved / dirt / mud / water / vegetation
-  → depth         Depth Anything V2 → road width per segment
-  → mapmatch      OSRM / Valhalla map matching onto OSM ways
+  → width         road mask + camera height → road width per frame
+  → mapmatch      Valhalla map matching onto OSM ways
   → fusion        majority vote across multiple passes, foliage masked out
-  → export        OSM surface / width / smoothness tags + flood layer (PostGIS)
+  → export        OSM surface tag proposals (osmChange) + review map
+                  later: width / smoothness tags, flood layer (PostGIS)
 ```
+
+## Run
+
+```bash
+py -3.12 -m venv .venv
+.venv/Scripts/python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+.venv/Scripts/python -m pip install transformers gpxpy pillow numpy pytest
+
+R=output/ride1
+python -m pipeline.frames.extract ride.mp4 ride.gpx --out $R
+python -m pipeline.segmentation.segment $R/frames --out $R
+python -m pipeline.width.estimate $R/frames --out $R --camera-height 1.1
+python -m pipeline.mapmatch.match $R/frames.csv --out $R
+python -m pipeline.fusion.fuse $R --out $R
+python -m pipeline.export.export $R/ways.csv --out $R
+```
+
+Needs `ffmpeg` on `PATH`. Each stage's README explains its output. Tests: `python -m pytest tests`.
 
 ## Repo layout
 
@@ -26,10 +45,10 @@ capture (phone video + GPS/IMU)
 capture/            Android capture app (video + GPS/IMU logging)
 pipeline/frames/    frame extraction + GPS sync
 pipeline/segmentation/
-pipeline/depth/
+pipeline/width/
 pipeline/mapmatch/
 pipeline/fusion/
-pipeline/export/    OSM changeset + PostGIS flood layer
+pipeline/export/    OSM edit proposals + review map
 data/samples/       small sample clips (large raw video is gitignored)
 docs/
 ```

@@ -8,14 +8,14 @@ from pathlib import Path
 from xml.sax.saxutils import quoteattr
 
 OSM_API = "https://api.openstreetmap.org/api/0.6"
-USER_AGENT = "vn-road-mapper/0.1 (+https://github.com/lector2002/vn-road-mapper)"
+USER_AGENT = "vn-road-mapper/0.1"
 PAVED = {"paved", "asphalt", "concrete", "concrete:plates", "concrete:lanes", "paving_stones", "sett", "chipseal",
          "metal", "bricks"}
 UNPAVED = {"unpaved", "dirt", "earth", "ground", "gravel", "fine_gravel", "compacted", "mud", "sand", "grass",
            "pebblestone", "rock"}
 NEW_TAG = {"paved": "paved", "dirt": "unpaved", "mud": "unpaved"}
 CSV_FIELDS = ["way_id", "status", "current_surface", "proposed_surface", "surface", "agreement", "votes",
-              "water_share", "name", "highway"]
+              "water_share", "width_m", "name", "highway"]
 COLORS = {"add": "#1f45cf", "change": "#c4452f", "agree": "#2f8a3c", "weak": "#9a9a9a", "unknown": "#b8890f"}
 
 
@@ -80,7 +80,7 @@ def run(ways_csv, out_dir, min_agreement=0.7, min_votes=5, fetch=fetch_way):
         status, new = decide(w, current, min_agreement, min_votes)
         rows.append({"way_id": w["way_id"], "status": status, "current_surface": current, "proposed_surface": new,
                      "surface": w["surface"], "agreement": w["agreement"], "votes": w["votes"],
-                     "water_share": w["water_share"], "name": way["tags"].get("name", ""),
+                     "water_share": w["water_share"], "width_m": w.get("width_m", ""), "name": way["tags"].get("name", ""),
                      "highway": way["tags"].get("highway", "")})
         if new:
             edits.append((way, {**way["tags"], "surface": new}))
