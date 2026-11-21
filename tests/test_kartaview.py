@@ -1,3 +1,4 @@
+import csv
 import io
 import json
 
@@ -54,7 +55,9 @@ def test_run_writes_frames_csv_and_kartaview_way_ids(tmp_path, monkeypatch):
 
     assert [r["timestamp"] for r in rows] == ["2021-09-19T23:29:55.000Z", "2021-09-19T23:29:58.000Z"]
     assert (tmp_path / "frames" / "000002.jpg").read_bytes() == landscape
-    assert "850282873" in (tmp_path / "kartaview.csv").read_text(encoding="utf-8")
+    refs = list(csv.DictReader(open(tmp_path / "kartaview.csv", encoding="utf-8")))
+    assert refs[0]["kartaview_way_id"] == "850282873"
+    assert (refs[1]["sequence_id"], refs[1]["sequence_index"]) == ("1", "1")
 
 
 def test_portrait_photo_with_sky_on_the_right_is_turned_upright(tmp_path, monkeypatch):

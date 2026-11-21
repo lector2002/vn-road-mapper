@@ -17,6 +17,7 @@ from PIL import Image
 API = "https://api.kartaview.org/2.0/photo/"
 USER_AGENT = "vn-road-mapper/0.1"
 FRAME_FIELDS = ["filename", "timestamp", "lat", "lon", "heading"]
+REF_FIELDS = ["filename", "photo_id", "kartaview_way_id", "sequence_id", "sequence_index"]
 
 
 def get(url):
@@ -87,9 +88,10 @@ def run(sequence_id, out_dir, every=1):
         if not target.exists():
             save_frame(get(photo_url(photo)), target)
         rows.append(row)
-        refs.append({"filename": row["filename"], "photo_id": photo["id"], "kartaview_way_id": photo.get("wayId") or ""})
+        refs.append({"filename": row["filename"], "photo_id": photo["id"], "kartaview_way_id": photo.get("wayId") or "",
+                     "sequence_id": sequence_id, "sequence_index": photo["sequenceIndex"]})
     for name, fields, data in [("frames.csv", FRAME_FIELDS, rows),
-                               ("kartaview.csv", ["filename", "photo_id", "kartaview_way_id"], refs)]:
+                               ("kartaview.csv", REF_FIELDS, refs)]:
         with open(out_dir / name, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fields)
             writer.writeheader()
