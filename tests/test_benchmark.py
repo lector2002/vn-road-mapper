@@ -80,3 +80,16 @@ def test_run_writes_csv_json_and_scores(tmp_path, monkeypatch):
     assert saved["right"] == 1
     assert (tmp_path / "out" / "benchmark.csv").read_text().count("dirt") == 2
     assert "frames right: 1 of 2" in benchmark.report(result)
+
+
+def test_run_keeps_extra_columns_and_uses_the_ride_without_a_way(tmp_path, monkeypatch):
+    labels_csv = tmp_path / "labels.csv"
+    labels_csv.write_text("kartaview_sequence,photo,region,split,surface_by_eye\n7,1,mekong,test,unpaved\n")
+    monkeypatch.setattr(benchmark, "fetch_frames", lambda labels, frames_dir: [])
+    (tmp_path / "out" / "frames").mkdir(parents=True)
+    (tmp_path / "out" / "frames" / "7_00001.jpg").write_bytes(jpeg())
+
+    result = benchmark.run(labels_csv, tmp_path / "out", segmenter=FakeSegmenter())
+
+    assert [w["way_id"] for w in result["per_way"]] == ["7"]
+    assert "mekong,test" in (tmp_path / "out" / "benchmark.csv").read_text()

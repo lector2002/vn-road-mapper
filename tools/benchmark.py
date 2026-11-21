@@ -63,7 +63,7 @@ def score(rows, min_confidence=0.5):
     right = sum(FAMILY[r["label"]] == r["surface_by_eye"] for r in votes)
     ways = defaultdict(list)
     for r in clear:
-        ways[r["osm_way_id"]].append(r)
+        ways[r.get("osm_way_id") or r["kartaview_sequence"]].append(r)
     per_way = []
     for way_id, group in sorted(ways.items()):
         eye = Counter(r["surface_by_eye"] for r in group).most_common()
@@ -119,7 +119,8 @@ def run(labels_csv, out_dir, model_id=DEFAULT_MODEL, min_confidence=0.5, segment
         summary = summarize(segmenter.class_map(Image.open(path).convert("RGB")))
         rows.append({**label, "filename": path.name, "label": summary["label"], "confidence": summary["confidence"]})
     with open(out_dir / "benchmark.csv", "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+        extra = [k for k in (labels[0] if labels else {}) if k not in CSV_FIELDS]
+        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS + extra, restval="")
         writer.writeheader()
         writer.writerows(rows)
     result = score(rows, min_confidence)
@@ -129,7 +130,7 @@ def run(labels_csv, out_dir, model_id=DEFAULT_MODEL, min_confidence=0.5, segment
 
 def main(argv=None):
     p = argparse.ArgumentParser(description="Score surface labels against hand labels on KartaView photos.")
-    p.add_argument("labels", type=Path, help="label CSV: kartaview_sequence, photo (sequenceIndex), osm_way_id, surface_by_eye")
+    p.add_argument("labels", type=Path, help="label CSV: kartaview_sequence, photo (sequenceIndex), surface_by_eye, optional osm_way_id (else each ride counts as one way)")
     p.add_argument("--out", type=Path, required=True, help="output folder (gets frames/, benchmark.csv, benchmark.json)")
     p.add_argument("--model", default=DEFAULT_MODEL, help="Hugging Face model id (ADE20K label set)")
     p.add_argument("--min-confidence", type=float, default=0.5, help="frames below this confidence do not vote")

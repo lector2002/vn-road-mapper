@@ -44,13 +44,19 @@ def photo_url(photo):
     return photo.get("imageLthUrl") or photo["fileurlLTh"]
 
 
+def upright(image):
+    """The capture app saved some landscape shots as portrait images with the scene on its side; turn them back.
+
+    On two Thanh Hoa rides 64 of 76 had the sky on the right and come out upright; the other 12 come out upside down
+    and give no vote. The photos carry no orientation tag to tell the two apart.
+    """
+    return image.convert("RGB").rotate(90, expand=True) if image.height > image.width else None
+
+
 def save_frame(data, target):
-    image = Image.open(io.BytesIO(data))
-    if image.height > image.width:
-        # The capture app saved some landscape shots as portrait images with the scene on its side. On two Thanh Hoa
-        # rides 64 of 76 had the sky on the right and come out upright; the other 12 come out upside down and give
-        # no vote. The photos carry no orientation tag to tell the two apart.
-        image.convert("RGB").rotate(90, expand=True).save(target, quality=95)
+    turned = upright(Image.open(io.BytesIO(data)))
+    if turned is not None:
+        turned.save(target, quality=95)
     else:
         target.write_bytes(data)
 
