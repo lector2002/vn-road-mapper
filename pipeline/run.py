@@ -15,14 +15,14 @@ from tools import kartaview
 
 
 def run(out, video=None, gpx=None, kartaview_sequence=None, every=1, camera_height=None, model=segment.DEFAULT_MODEL,
-        overlays=5, valhalla=match.DEFAULT_URL, do_export=True, log=print):
+        overlays=5, valhalla=match.DEFAULT_URL, do_export=True, start=None, log=print):
     out = Path(out)
     if kartaview_sequence:
         log(f"frames: KartaView sequence {kartaview_sequence}")
         kartaview.run(kartaview_sequence, out, every=every)
     else:
         log(f"frames: {video}")
-        extract.run(video, gpx, out)
+        extract.run(video, gpx, out, start=start)
     log("segmentation")
     segment.run(out / "frames", out, overlays, model)
     if camera_height:
@@ -47,6 +47,8 @@ def main(argv=None):
     p.add_argument("--every", type=int, default=1, help="with --kartaview: keep every n-th photo")
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--camera-height", type=float, help="lens height above the road in m; leave out to skip width")
+    p.add_argument("--start", type=extract.parse_start,
+                   help="with a video: start time with timezone; overrides the video's creation_time tag")
     p.add_argument("--model", default=segment.DEFAULT_MODEL)
     p.add_argument("--overlays", type=int, default=5)
     p.add_argument("--valhalla", default=match.DEFAULT_URL, help="Valhalla server; self-host for real riders' tracks")
@@ -56,9 +58,11 @@ def main(argv=None):
         p.error("give either a video and a gpx file, or --kartaview")
     if args.video and not args.gpx:
         p.error("a video needs a gpx file")
+    if args.camera_height is not None and args.camera_height <= 0:
+        p.error("--camera-height must be positive")
     try:
         ways = run(args.out, args.video, args.gpx, args.kartaview, args.every, args.camera_height, args.model,
-                   args.overlays, args.valhalla, not args.no_export)
+                   args.overlays, args.valhalla, not args.no_export, args.start)
     except (ValueError, OSError, subprocess.CalledProcessError, urllib.error.URLError) as e:
         sys.exit(f"error: {e}")
     print(f"{len(ways)} ways -> {args.out}")

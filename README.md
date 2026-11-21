@@ -39,7 +39,7 @@ python -m pipeline.run ride.mp4 ride.gpx --out output/ride1 --camera-height 1.1
 python -m pipeline.run --kartaview <sequence-id> --every 2 --out output/kv1   # public KartaView sequence instead of a video
 ```
 
-`--camera-height` turns on the width stage; `--no-export` stops before the OSM API calls. Each stage also runs on its own (`python -m pipeline.frames.extract`, `pipeline.segmentation.segment`, `pipeline.width.estimate`, `pipeline.mapmatch.match`, `pipeline.fusion.fuse`, `pipeline.export.export`); each stage's README explains its output.
+`--camera-height` turns on the width stage; `--start` gives the video start time when the file has no `creation_time` tag; `--no-export` stops before the OSM API calls. Each stage also runs on its own (`python -m pipeline.frames.extract`, `pipeline.segmentation.segment`, `pipeline.width.estimate`, `pipeline.mapmatch.match`, `pipeline.fusion.fuse`, `pipeline.export.export`); each stage's README explains its output.
 
 Score the surface stage against the Cần Thơ hand labels (downloads the 177 labelled KartaView photos into `--out`):
 

@@ -25,7 +25,7 @@ def stages(monkeypatch, tmp_path):
             csv.writer(f).writerows([["filename", "way_id"], ["000001.jpg", "42"]])
 
     monkeypatch.setattr(pipeline_run.kartaview, "run", lambda seq, out, every: calls.append(("kartaview", seq, every)) or frames(out))
-    monkeypatch.setattr(pipeline_run.extract, "run", lambda video, gpx, out: calls.append(("video", video.name)) or frames(out))
+    monkeypatch.setattr(pipeline_run.extract, "run", lambda video, gpx, out, start=None: calls.append(("video", video.name)) or frames(out))
     monkeypatch.setattr(pipeline_run.segment, "run", segmentation)
     monkeypatch.setattr(pipeline_run.estimate, "run", lambda *a: calls.append(("width", a[2])))
     monkeypatch.setattr(pipeline_run.match, "run", mapmatch)
@@ -53,3 +53,16 @@ def test_cli_needs_a_video_or_kartaview(tmp_path):
         pipeline_run.main(["--out", str(tmp_path)])
     with pytest.raises(SystemExit):
         pipeline_run.main(["ride.mp4", "--out", str(tmp_path)])
+
+
+def test_cli_rejects_a_camera_height_that_is_not_positive(tmp_path):
+    with pytest.raises(SystemExit):
+        pipeline_run.main(["--kartaview", "1", "--out", str(tmp_path), "--camera-height", "-1.1"])
+
+
+def test_cli_passes_the_start_time_to_the_frames_stage(monkeypatch, tmp_path):
+    seen = {}
+    monkeypatch.setattr(pipeline_run, "run", lambda *args: seen.setdefault("start", args[-1]) and [])
+    pipeline_run.main([str(tmp_path / "ride.mp4"), str(tmp_path / "ride.gpx"), "--out", str(tmp_path),
+                       "--start", "2026-03-01T09:00:00+07:00"])
+    assert seen["start"].isoformat() == "2026-03-01T02:00:00+00:00"
