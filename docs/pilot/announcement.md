@@ -19,7 +19,7 @@ Before anything is edited I'd like your opinion on a small pilot:
 - **Stop rule:** if mappers reject more than 10% of the proposals, the pilot stops and the model is fixed before anything else is proposed.
 - **Wiki page:** <WIKI PAGE>
 
-**How good is it?** A ride is split into photos, each photo is matched to an OSM way, and a way gets a tag only when at least 5 photos voted and at least 70% agreed. On a test set of 4 public Vietnamese rides it calls 120 of 128 clear photos correctly; the most common mistake is a dirt road called paved (6 of 34). Those labels were made by the project and I checked a blind sample of 50 photos (I agreed on 37 of 38). The test dirt roads all come from one Ninh Bình ride, so the pilot is the real test for the Mekong delta. The method and numbers are [here](https://github.com/lector2002/vn-road-mapper/blob/main/docs/roadmap.md).
+**How good is it?** A ride is split into photos, each photo is matched to an OSM way, and a way gets a tag only when at least 5 photos voted and at least 70% agreed. On a test set of 4 public Vietnamese rides it calls 119 of 129 clear photos correctly; the most common mistake is an unpaved road called paved (8 of 36), while paved roads are almost never called unpaved (2 of 93). The project made those labels and I checked a blind sample of 50 photos (I agreed on 37 of 38). None of the test rides is in the Mekong delta (they are in Ninh Bình, Hà Tĩnh and Gia Lai), so the pilot is the real test for the Mekong delta. The method and numbers are [here](https://github.com/lector2002/vn-road-mapper/blob/main/docs/roadmap.md).
 
 Questions I'd especially like answered:
 
@@ -50,7 +50,7 @@ Trước khi sửa gì, mình muốn hỏi ý kiến mọi người về một t
 - **Quy tắc dừng:** nếu người kiểm tra bác bỏ hơn 10% đề xuất, thí điểm dừng lại và mô hình được sửa trước khi đề xuất thêm.
 - **Trang wiki:** <WIKI PAGE>
 
-**Độ chính xác:** mỗi chuyến đi được tách thành ảnh, mỗi ảnh được gắn vào một đường OSM, và một đường chỉ được đề xuất khi có ít nhất 5 ảnh bỏ phiếu và ít nhất 70% đồng ý. Trên bộ kiểm tra gồm 4 chuyến đi công khai ở Việt Nam, mô hình đúng 120/128 ảnh rõ; lỗi hay gặp nhất là đường đất bị gọi là đã trải mặt (6/34). Nhãn do dự án làm, và mình đã tự kiểm tra mù 50 ảnh (đồng ý 37/38). Đường đất trong bộ kiểm tra đều từ một chuyến ở Ninh Bình, nên thí điểm này mới là phép thử thật cho đồng bằng sông Cửu Long. Phương pháp và số liệu ở [đây](https://github.com/lector2002/vn-road-mapper/blob/main/docs/roadmap.md).
+**Độ chính xác:** mỗi chuyến đi được tách thành ảnh, mỗi ảnh được gắn vào một đường OSM, và một đường chỉ được đề xuất khi có ít nhất 5 ảnh bỏ phiếu và ít nhất 70% đồng ý. Trên bộ kiểm tra gồm 4 chuyến đi công khai ở Việt Nam, mô hình đúng 119/129 ảnh rõ; lỗi hay gặp nhất là đường chưa trải mặt bị gọi là đã trải mặt (8/36), còn đường đã trải mặt rất hiếm khi bị gọi sai (2/93). Nhãn do dự án làm, và mình đã tự kiểm tra mù 50 ảnh (đồng ý 37/38). Không chuyến nào trong bộ kiểm tra ở đồng bằng sông Cửu Long (chúng ở Ninh Bình, Hà Tĩnh và Gia Lai), nên thí điểm này mới là phép thử thật cho đồng bằng sông Cửu Long. Phương pháp và số liệu ở [đây](https://github.com/lector2002/vn-road-mapper/blob/main/docs/roadmap.md).
 
 Mình muốn hỏi:
 
