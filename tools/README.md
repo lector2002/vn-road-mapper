@@ -23,7 +23,7 @@ Scores the segmentation stage against hand labels on public KartaView photos. It
 python -m tools.benchmark docs/evaluation/data/2026-11-20-can-tho-hand-labels.csv --out output/bench-can-tho
 ```
 
-- The CSV needs `kartaview_sequence`, `photo` (KartaView `sequenceIndex`), `osm_way_id` and `surface_by_eye` (`paved`, `unpaved` or anything else for unclear).
+- The CSV needs `kartaview_sequence`, `photo` (KartaView `sequenceIndex`) and `surface_by_eye` (`paved`, `unpaved` or anything else for unclear). `osm_way_id` is optional; without it each ride counts as one way. Other columns, such as `split`, are copied into `benchmark.csv`.
 - A frame votes when its label is `paved`, `dirt` or `mud` with confidence 0.5 or more, as in fusion.
 - A way counts when the eye labels have a strict majority.
 - On 2026-11-21: 109 of 142 frames right, 30 unpaved called paved, 3 paved called unpaved, 5 of 8 ways. The 2026-11-20 evaluation got 112 of 142 from the original storage-host photos; the CDN copies the importer now uses are sharpened.

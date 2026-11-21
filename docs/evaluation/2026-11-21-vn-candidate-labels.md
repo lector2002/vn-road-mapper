@@ -16,7 +16,7 @@ Claude labelled every photo in `data/2026-11-21-vn-candidates.csv` twice, from c
 
 ## Benchmark on these labels
 
-`python -m tools.benchmark` with each ride as one "way", current model (`nvidia/segformer-b2-finetuned-ade-512-512`):
+`python -m tools.benchmark docs/evaluation/data/2026-11-21-vn-labels.csv --out output/vn`, each ride counted as one way, current model (`nvidia/segformer-b2-finetuned-ade-512-512`):
 
 | set | frames right | unpaved called paved | paved called unpaved | rides right |
 |---|---|---|---|---|
