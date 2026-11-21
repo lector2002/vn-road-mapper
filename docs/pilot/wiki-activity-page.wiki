@@ -1,0 +1,42 @@
+<!-- Draft for https://wiki.openstreetmap.org/wiki/Organised_Editing/Activities/vn-road-mapper_Ô_Môn_surface_pilot
+     Replace <YOUR OSM USERNAME>, <FORUM THREAD URL>, <MAPROULETTE URL> and the dates, then add a row to
+     https://wiki.openstreetmap.org/wiki/Organised_Editing/Activities -->
+{{Organised Editing
+|name=vn-road-mapper Ô Môn surface pilot
+|organiser=<YOUR OSM USERNAME>
+|contact=[[User:<YOUR OSM USERNAME>]]
+|start=<START DATE, at least 2 weeks after the announcement>
+|end=<START DATE + 6 weeks>
+|area=Ô Môn and neighbouring wards (Thới An Đông, Trường Thành), Cần Thơ, Vietnam
+|hashtag=#vnroadmapper
+}}
+
+== Summary ==
+A small, human-reviewed test of adding <code>surface=paved</code> or <code>surface=unpaved</code> to about 57 small roads that have no surface tag, using suggestions from the open-source [https://github.com/lector2002/vn-road-mapper vn-road-mapper] tool and public KartaView street-level photos from May 2023.
+
+== Who ==
+* Organiser: <YOUR OSM USERNAME> (volunteer, not paid, no company or client).
+* Mappers: anyone who wants to join, especially mappers who know the Mekong delta. Nobody is paid.
+
+== What is edited ==
+* Only ways with <code>highway=unclassified</code>, <code>residential</code>, <code>track</code>, <code>service</code>, <code>tertiary</code>, <code>living_street</code> or <code>road</code> that have no <code>surface</code> tag when the task is opened.
+* Only the tag <code>surface=paved</code> or <code>surface=unpaved</code> is added. No geometry, no other tags, no existing tag is changed.
+* Full list: [https://github.com/lector2002/vn-road-mapper/blob/main/docs/pilot/data/pilot.csv pilot.csv]; map: [https://github.com/lector2002/vn-road-mapper/blob/main/docs/pilot/data/review.html review.html].
+
+== How ==
+* The suggestions come from a model that looks at each photo, matches it to an OSM way, and suggests a surface only when at least 5 photos voted and at least 70% agree.
+* Each way is a task in a MapRoulette challenge: <MAPROULETTE URL>. The task shows the way and links to 3 photos. The mapper checks the photos (and imagery if useful), then confirms, changes or skips the suggested tag.
+* Every change is made and uploaded by the mapper in the MapRoulette editor or iD/JOSM under their own account. There is no automated or scripted upload, so the [[Automated Edits code of conduct]] does not apply, but its consultation steps are followed anyway.
+* Changesets use the comment <code>Add surface from KartaView photos (vn-road-mapper pilot) #vnroadmapper</code> and the tag <code>source=KartaView</code>.
+
+== Data and licence ==
+KartaView imagery is CC BY-SA 4.0 and is allowed as a source for OSM. No data is copied from other maps.
+
+== Quality and stop rule ==
+* At the end, the MapRoulette results are exported and scored: the share of tasks where the mapper accepted the suggested value.
+* The pilot is a success only if at least 90% of the reviewed suggestions are accepted. Below that, no more suggestions are made until the model is fixed and the community is consulted again.
+* Results will be posted on this page and in the forum thread.
+
+== Discussion ==
+* Forum: <FORUM THREAD URL>
+* Problems with a specific edit: comment on the changeset, or message <YOUR OSM USERNAME>.

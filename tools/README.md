@@ -10,7 +10,7 @@ python -m tools.kartaview 3846125 --out output/kv-3846125 --every 2
 
 - `--every 2` keeps every 2nd photo.
 - Portrait-shaped photos are turned 90° to landscape. The capture app saved some landscape shots as portrait with the scene on its side; the model labeled many of those `water`. On the Thanh Hóa rides this makes 64 of 76 such photos upright; 12 had the sky on the other side and end up upside down (they give no vote).
-- It also writes `kartaview.csv` with KartaView's own matched OSM way per photo, as a cross-check for the mapmatch stage.
+- It also writes `kartaview.csv` with KartaView's own matched OSM way per photo, as a cross-check for the mapmatch stage, plus each photo's sequence and index so later stages can link to it.
 - Find sequences with `https://api.kartaview.org/2.0/sequence/?countryCode=VN&itemsPerPage=100&page=1`.
 
 KartaView imagery is CC BY-SA 4.0. Keep downloaded frames out of the repo (`output/` is ignored).
@@ -73,3 +73,18 @@ python -m tools.probe features output/vn/frames --out output/probe-vn.npz
 python -m tools.probe train --train docs/evaluation/data/2026-11-21-vn-labels.csv output/probe-vn.npz dev \
   --test docs/evaluation/data/2026-11-21-vn-labels.csv output/probe-vn.npz test
 ```
+
+## pilot.py
+
+Builds and scores the Phase 3 OSM pilot ([kit](../docs/pilot/README.md)). Nothing here uploads to OSM or MapRoulette.
+
+```bash
+# Pick up to 100 untagged small roads from export proposals and write the pilot
+python -m tools.pilot build output/pilot/fused/proposals.csv output/pilot/kv-8293225 output/pilot/kv-8308169 --out docs/pilot/data
+# Score the reviewers' answers (a MapRoulette CSV export, or pilot.csv with its decision column filled)
+python -m tools.pilot score export.csv
+```
+
+- `build` keeps only `add` proposals on rural highway types with photos for the proposed surface, puts unpaved first, then re-fetches every way from the OSM API and drops any that has a `surface` tag by now.
+- It writes `pilot.csv` (one row per way with 3 KartaView photo links and an empty `decision` column), `challenge.geojson` (MapRoulette line-by-line GeoJSON; each task is a cooperative tag fix that only sets `surface`) and `review.html` (the export review map for just these ways).
+- `score` counts Fixed/accept as accepted and Not an issue/reject as rejected, ignores skipped or too-hard tasks, and passes at 90% accepted.
