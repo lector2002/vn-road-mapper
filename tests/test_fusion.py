@@ -88,6 +88,7 @@ def test_width_is_median_of_frames_that_have_one():
     frames = [{**frame("1", "dirt"), "width_m": w} for w in ["3.0", "", "3.4", "9.0"]]
     way = by_way(fuse(frames))["1"]
     assert way["width_m"] == 3.4
+    assert way["width_class"] == "one_car"
     assert way["width_frames"] == 3
 
 
@@ -95,4 +96,5 @@ def test_run_without_widths_csv_gives_blank_width(tmp_path):
     run = make_run(tmp_path / "r", [("5", "dirt")])
     way = by_way(fuse(load_run(run)))["5"]
     assert way["width_m"] == ""
+    assert way["width_class"] == ""
     assert way["width_frames"] == 0

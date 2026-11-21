@@ -3,7 +3,7 @@ import pytest
 from PIL import Image
 
 from pipeline.segmentation.segment import CLASSES
-from pipeline.width.estimate import draw, estimate_width, road_span
+from pipeline.width.estimate import draw, estimate_width, road_span, width_class
 
 PAVED, DIRT, VEG = CLASSES.index("paved"), CLASSES.index("dirt"), CLASSES.index("vegetation")
 
@@ -79,3 +79,17 @@ def test_no_width_when_short_spans_contradict_rows_where_road_fills_the_frame():
         class_map[y, :] = VEG
         class_map[y, 600:600 + (y - 250)] = PAVED
     assert estimate_width(class_map, 1.1)["width_m"] == ""
+
+
+@pytest.mark.parametrize("width_m, expected", [
+    (1.8, "motorbike"), (2.49, "motorbike"), (2.5, "one_car"), ("3.2", "one_car"), (4.0, "one_car"),
+    (4.01, "two_cars"), (7, "two_cars"), ("", ""), (None, ""),
+])
+def test_width_class_boundaries(width_m, expected):
+    assert width_class(width_m) == expected
+
+
+def test_estimate_gives_class_with_width_and_blank_without():
+    assert estimate_width(straight_road(3.0, 1.1, 0.5), 1.1)["width_class"] == "one_car"
+    assert estimate_width(straight_road(2.0, 1.1, 0.5), 1.1)["width_class"] == "motorbike"
+    assert estimate_width(np.full((720, 1280), VEG), 1.1)["width_class"] == ""

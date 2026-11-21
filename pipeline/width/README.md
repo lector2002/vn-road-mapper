@@ -12,10 +12,10 @@ Measure `--camera-height` once: the height of the phone lens above the road, in 
 
 Output:
 
-- `widths.csv` with the columns `filename,width_m,horizon,rows,residual`.
+- `widths.csv` with the columns `filename,width_m,width_class,horizon,rows,residual`. `width_class` is `motorbike` (under 2.5 m), `one_car` (2.5–4 m) or `two_cars` (over 4 m), blank when `width_m` is blank.
 - `width_overlays/*.jpg`: yellow lines for the rows used, red lines for the rows left out, and a blue line for the fitted horizon.
 
-The fusion stage adds the median width of each OSM way when it finds `widths.csv` in the run folder.
+The fusion stage adds the median width of each OSM way, and its class, when it finds `widths.csv` in the run folder; the export stage copies both into `proposals.csv`. Neither becomes an OSM tag.
 
 ## How
 
@@ -39,4 +39,4 @@ A blank is better than a wrong number.
 - The road mask includes dirt shoulders, so a paved road with dirt edges measures as the full width.
 - Both road edges must be in view. On a real motorbike ride most main-road frames got no width, while narrow village roads did (`docs/evaluation/2026-11-20-kartaview-thanh-hoa.md`). A wide-angle lens helps.
 - A phone tilted far down makes the width slightly too small (about 10% at 25° down).
-- Not yet checked against a road of known width. See `docs/decisions/2026-11-20-width-method.md`.
+- Checked against OSM `width` tags on public Mapillary photos (`docs/evaluation/2026-11-21-phase4-width-classes.md`): on car dashcam photos it gives a width on 5 of 216 frames, and neither this fit nor two camera-free variants beat calling every road `two_cars`. Use it on own rides with a measured camera height, not on public imagery. See also `docs/decisions/2026-11-20-width-method.md`.

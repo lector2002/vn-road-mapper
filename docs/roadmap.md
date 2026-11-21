@@ -12,7 +12,7 @@
 | Surface on dirt roads | Main weakness | 112 of 142 right; 27 of the 30 errors are dirt called `paved` |
 | Mud | Not possible yet | ADE20K has no mud class |
 | Flood / water | Untested on real footage | Only false `water` hits so far |
-| Width | Unconfirmed | 8 of 235 frames got a width on helmet-camera footage; no ground truth |
+| Width | Classes only on own rides | On public Mapillary photos no method beats calling every road two-car (Phase 4) |
 | OSM upload | None, on purpose | Community not contacted yet |
 
 Labelled Vietnamese frames are the bottleneck, not code: every accuracy test so far ends with "needs more Vietnamese rides". The 177 Cần Thơ labels were made by Claude in one pass and no person has checked them.
@@ -71,6 +71,8 @@ Public imagery has unknown camera height and lens, so metric width within 0.5 m 
 
 **Expect:** a usable 3-class width on straight narrow roads; most frames still get none (bends, wide roads).
 
+**Status:** `widths.csv`, fused ways and proposals carry `width_class`. Scored against OSM `width` tags on 216 Mapillary photos of 45 ways ([evaluation](evaluation/2026-11-21-phase4-width-classes.md)): the shipped fit classes 1 of 22 test ways, and neither a fixed-horizon fit (10 of 21) nor scaling from vehicles (9 of 14) beats calling every road `two_cars` (15 of 22). Most public photos come from cars on wide city streets; motorbike-only lanes, the target, had usable photos on 7 ways. Width on public imagery stays blank until own rides, KartaView motorbike footage of narrow lanes or a road-only model change that.
+
 ## Phase 5: flood-risk layer (2–4 sessions)
 
 Public imagery is rarely taken during floods, and water depth is not visible in a frame, so video alone cannot say "passable in flood season". Build it from layers instead:
@@ -97,6 +99,6 @@ Public imagery is rarely taken during floods, and water depth is not visible in 
 | 1 Trusted test set | 1–2 sessions | Owner, 30 min | Real error rate across regions |
 | 2 Dirt vs paved | 1–2 sessions | No | About 77% → about 90% (target) |
 | 3 OSM pilot | 1 session | OSM volunteers | First accepted edits |
-| 4 Width classes | 1 session | No | 3-class width on narrow roads |
+| 4 Width classes | done | No | Class on own rides; none yet on public imagery |
 | 5 Flood layer | 2–4 sessions | Partners to check | District flood-risk map |
 | 6 One province | 2–3 sessions | No | Province coverage where imagery exists |

@@ -5,9 +5,11 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from statistics import median
 
+from pipeline.width.estimate import width_class
+
 SURFACES = ["paved", "dirt", "mud"]
 MIN_CONFIDENCE = 0.5
-CSV_FIELDS = ["way_id", "surface", "agreement", "votes", "frames", "passes", "water_share", "width_m", "width_frames"]
+CSV_FIELDS = ["way_id", "surface", "agreement", "votes", "frames", "passes", "water_share", "width_m", "width_class", "width_frames"]
 
 
 def load_run(run_dir):
@@ -45,6 +47,7 @@ def fuse(frames, min_confidence=MIN_CONFIDENCE):
             "passes": len({f["run"] for f in group}),
             "water_share": round(sum(f["label"] == "water" for f in sure) / len(sure), 3) if sure else "",
             "width_m": round(median(widths), 1) if widths else "",
+            "width_class": width_class(median(widths)) if widths else "",
             "width_frames": len(widths),
         })
     return sorted(ways, key=lambda w: -w["frames"])
