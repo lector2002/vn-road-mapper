@@ -30,16 +30,18 @@ Labelled Vietnamese frames are the bottleneck, not code: every accuracy test so 
 ## Phase 1: a trusted Vietnamese test set (1–2 sessions)
 
 No paid labellers, so:
-- **Owner spot check (about 20–30 min):** label 50 of the 177 Cần Thơ photos on the label page, blind to the existing labels. `python -m tools.agreement` compares the two; if 45 or more of the photos clear to both agree, keep the file as test data. *Ready; waiting on the owner.*
+- **Owner spot check (about 20–30 min):** label 50 of the 177 Cần Thơ photos on the label page, blind to the existing labels. `python -m tools.agreement` compares the two; if 45 or more of the photos clear to both agree, keep the file as test data. *Done 2026-11-21: 38 of 44 agree (86%), so it failed. The 177 Cần Thơ labels are training data only, with the owner's 50 answers (`docs/evaluation/data/2026-11-21-can-tho-owner-spot-check.csv`) replacing them where they overlap.*
 - **Label page:** `tools/labelpage.py` builds one HTML file that shows the road box and saves paved / unpaved / mud / water / unclear to CSV. Shareable with OSM Vietnam volunteers. *Done.*
-- **Candidate frames:** `docs/evaluation/data/2026-11-21-vn-candidates.csv`, 585 KartaView photos from 13 sequences in 6 provinces and 4 regions (Mekong delta, Central Highlands, North Central, Red River delta), 6 cameras from 2017 to 2026. The split is fixed per rider and day: 270 test, 315 dev. *Done.*
-- **Labels for the candidates:** `docs/evaluation/data/2026-11-21-vn-labels.csv`. Claude labelled each photo twice in a different random order and kept the 568 where both passes agree: 422 paved, 51 unpaved, 95 unclear, no mud or water. The Ninh Bình ride holding most of the dirt moved to test. On the test split the current model gets 208 of 228 frames right but calls 18 of 37 unpaved photos paved ([write-up](evaluation/2026-11-21-vn-candidate-labels.md)). Provisional until someone checks a sample on the label page; volunteers can label the same file with `--link`. *Done.*
+- **Candidate frames:** `docs/evaluation/data/2026-11-21-vn-candidates.csv`, 585 KartaView photos from 13 sequences in 6 provinces and 4 regions (Mekong delta, Central Highlands, North Central, Red River delta), 6 cameras from 2017 to 2026. The split is fixed per rider and day: 180 test, 405 dev (all Cần Thơ in dev since Phase 2, because the hand-labelled Cần Thơ rides share days with the candidates). *Done.*
+- **Labels for the candidates:** `docs/evaluation/data/2026-11-21-vn-labels.csv`. Claude labelled each photo twice in a different random order and kept the 568 where both passes agree: 422 paved, 51 unpaved, 95 unclear, no mud or water. The Ninh Bình ride holding most of the dirt moved to test. On the test split SegFormer gets 110 of 128 frames right but calls 17 of 34 unpaved photos paved ([write-up](evaluation/2026-11-21-vn-candidate-labels.md)). Provisional until someone checks a sample on the label page; volunteers can label the same file with `--link`. *Done.*
 
 Gaps: KartaView has no sequence of 30 or more photos in the northern mountains, and most candidates are on roads near towns. Five sequences were dropped: four come out sideways (turned the wrong way by the portrait fix, which took out the Southeast region) and one has a covered lens. Mapillary covers more rural roads but needs a free access token (`MAPILLARY_TOKEN`, from a free Mapillary account); it is the next source to add when the owner makes one.
 
 **Expect:** the real dirt-versus-paved error rate across Vietnam. It is probably worse than Cần Thơ's 77% (109 of 142), which is one region and one camera (inferred). Without a person checking a sample, label noise limits how far later numbers can be trusted.
 
 ## Phase 2: fix dirt called `paved` (1–2 sessions)
+
+*Done 2026-11-21 ([write-up](evaluation/2026-11-21-phase2-dirt-probe.md)):* a CLIP probe on the road crop rechecks frames SegFormer calls paved. Test split: 110 → 120 of 128 frames right, unpaved called paved 17 → 6 of 34, paved called unpaved 1 → 2 of 94, rides 3 → 4 of 4, 0 of 465 Thanh Hóa paved frames switched. Option 1 got only 113 of 128. All test dirt is from one ride and no person has checked the test labels.
 
 In order of cost:
 1. The linear probe on SegFormer features (122–126 of 142 with 5 rides), retrained on Phase 1 data.
