@@ -59,7 +59,7 @@ pipeline/width/
 pipeline/mapmatch/
 pipeline/fusion/
 pipeline/export/    OSM edit proposals + review map
-tools/              KartaView importer, surface benchmark
+tools/              KartaView importer, surface benchmark, label page
 data/samples/       small sample clips (large raw video is gitignored)
 docs/               decisions/, evaluation/
 ```
@@ -69,7 +69,7 @@ docs/               decisions/, evaluation/
 Public imagery first; nothing depends on hiring riders or labellers. Details and what to expect from each phase: [docs/roadmap.md](docs/roadmap.md).
 
 - [x] **Phase 0:** one-command run and surface benchmark, split requirements, weekly model check in CI
-- [ ] **Phase 1:** trusted Vietnamese test set from public imagery (volunteer and owner-checked labels)
+- [ ] **Phase 1:** trusted Vietnamese test set from public imagery. Done: label page, agreement check, 585 candidate frames from 13 sequences in 4 regions. Left: the owner's 50-photo spot check, then labels for the candidates
 - [ ] **Phase 2:** fix dirt roads called paved
 - [ ] **Phase 3:** OSM Vietnam community review, then a small human-reviewed pilot
 - [ ] **Phase 4:** width as classes (motorbike only / one car / two cars)

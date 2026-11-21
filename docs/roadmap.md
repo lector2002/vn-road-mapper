@@ -30,11 +30,14 @@ Labelled Vietnamese frames are the bottleneck, not code: every accuracy test so 
 ## Phase 1: a trusted Vietnamese test set (1–2 sessions)
 
 No paid labellers, so:
-- **Owner spot check (about 30 min):** check 50 of the 177 Cần Thơ labels on the label page. If 45 or more agree, keep the file as test data.
-- **Label page:** a static HTML page like `review_template.html` that shows the road box and saves paved / unpaved / mud / water / unclear to CSV. Shareable with OSM Vietnam volunteers.
-- **Model-assisted labels:** Claude labels Mapillary frames of untagged rural roads at full size, twice in random order; only frames where both passes agree go in, and the owner spot-checks a sample. Target about 800 frames from 20 or more sequences in 5 or more provinces (Mekong delta, central coast, northern mountains, Central Highlands), phone and dashcam. Freeze about 300 as a test set split by ride.
+- **Owner spot check (about 20–30 min):** label 50 of the 177 Cần Thơ photos on the label page, blind to the existing labels. `python -m tools.agreement` compares the two; if 45 or more of the photos clear to both agree, keep the file as test data. *Ready; waiting on the owner.*
+- **Label page:** `tools/labelpage.py` builds one HTML file that shows the road box and saves paved / unpaved / mud / water / unclear to CSV. Shareable with OSM Vietnam volunteers. *Done.*
+- **Candidate frames:** `docs/evaluation/data/2026-11-21-vn-candidates.csv`, 585 KartaView photos from 13 sequences in 6 provinces and 4 regions (Mekong delta, Central Highlands, North Central, Red River delta), 6 cameras from 2017 to 2026. The split is fixed per rider and day: 270 test, 315 dev. *Done.*
+- **Labels for the candidates:** Claude labels each photo at full size, twice in a different random order; only photos where both passes agree go in, and the owner spot-checks a sample on the label page. Volunteers can label the same file with `--link`. *Next.*
 
-**Expect:** the real dirt-versus-paved error rate across Vietnam. It is probably worse than Cần Thơ's 79%, which is one region and one camera (inferred). Without a person checking a sample, label noise limits how far later numbers can be trusted.
+Gaps: KartaView has no sequence of 30 or more photos in the northern mountains, and most candidates are on roads near towns. Five sequences were dropped: four come out sideways (turned the wrong way by the portrait fix, which took out the Southeast region) and one has a covered lens. Mapillary covers more rural roads but needs a free access token (`MAPILLARY_TOKEN`, from a free Mapillary account); it is the next source to add when the owner makes one.
+
+**Expect:** the real dirt-versus-paved error rate across Vietnam. It is probably worse than Cần Thơ's 77% (109 of 142), which is one region and one camera (inferred). Without a person checking a sample, label noise limits how far later numbers can be trusted.
 
 ## Phase 2: fix dirt called `paved` (1–2 sessions)
 
@@ -45,7 +48,7 @@ In order of cost:
 
 Pass rule stays: no new paved roads called unpaved, no Thanh Hóa way changes.
 
-**Expect:** frame accuracy on clear frames from about 79% to about 88–92%, with paved called unpaved at 3% or less (inferred from the probe trend, not measured). Way-level accuracy is higher because fusion votes. If it stalls in the mid-80s, export `unpaved` only where two or more rides agree.
+**Expect:** frame accuracy on clear frames from about 77% (109 of 142) to about 88–92%, with paved called unpaved at 3% or less (inferred from the probe trend, not measured). Way-level accuracy is higher because fusion votes. If it stalls in the mid-80s, export `unpaved` only where two or more rides agree.
 
 ## Phase 3: OSM community and a small pilot (1 session, then 2–6 weeks of community time)
 
@@ -87,7 +90,7 @@ Public imagery is rarely taken during floods, and water depth is not visible in 
 |---|---|---|---|
 | 0 Run + benchmark | done | No | Same command measures every change |
 | 1 Trusted test set | 1–2 sessions | Owner, 30 min | Real error rate across regions |
-| 2 Dirt vs paved | 1–2 sessions | No | About 79% → about 90% (target) |
+| 2 Dirt vs paved | 1–2 sessions | No | About 77% → about 90% (target) |
 | 3 OSM pilot | 1 session | OSM volunteers | First accepted edits |
 | 4 Width classes | 1 session | No | 3-class width on narrow roads |
 | 5 Flood layer | 2–4 sessions | Partners to check | District flood-risk map |
