@@ -60,6 +60,8 @@ Pass rule stays: no new paved roads called unpaved, no Thanh Hóa way changes.
 
 **Expect:** the main risk is social, not technical. The community may narrow which roads and tags are welcome. Reviewers accepting 90% or more of proposals is the bar for going further.
 
+**Status:** the kit is in [docs/pilot](pilot/README.md): announcement (English and Vietnamese), organised-editing wiki page, MapRoulette challenge text and file, and PILOT_N proposals in the former Ô Môn district of Cần Thơ from two May 2023 KartaView rides. `python -m tools.pilot score` checks the 90% bar. The owner sends it; nothing has been posted or edited.
+
 ## Phase 4: width as classes (1 session)
 
 Public imagery has unknown camera height and lens, so metric width within 0.5 m is out of reach. Riders and ambulances need a class: **motorbike only (under 2.5 m) / one car (2.5–4 m) / two cars (over 4 m)**.

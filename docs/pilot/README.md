@@ -29,8 +29,8 @@ The Organised Editing Guidelines ask for the wiki page first, then the announcem
 OSM changes while the community discusses. Rebuilding drops ways someone has tagged in the meantime:
 
 ```bash
-python -m pipeline.run --kartaview 8293225 --every 2 --out output/pilot/kv-8293225
-python -m pipeline.run --kartaview 8308169 --every 2 --out output/pilot/kv-8308169
+python -m pipeline.run --kartaview 8293225 --every 2 --out output/pilot/kv-8293225 --no-export
+python -m pipeline.run --kartaview 8308169 --every 2 --out output/pilot/kv-8308169 --no-export
 python -m pipeline.fusion.fuse output/pilot/kv-8293225 output/pilot/kv-8308169 --out output/pilot/fused
 python -m pipeline.export.export output/pilot/fused/ways.csv --out output/pilot/fused
 python -m tools.pilot build output/pilot/fused/proposals.csv output/pilot/kv-8293225 output/pilot/kv-8308169 --out docs/pilot/data
@@ -40,4 +40,4 @@ The two rides take about an hour each on a laptop CPU (2,700 and 3,600 photos). 
 
 ## What to say about accuracy
 
-The numbers come from a test split of 178 photos from 4 rides. One person labelled them twice and nobody else has checked them, so they are consistent labels, not checked ones. All the dirt photos in the test split come from one Ninh Bình ride. The pilot itself is the first independent check.
+On the Vietnamese test split (4 public rides), the model gets 120 of 128 clear photos right; 6 of 34 dirt photos are still called paved and 2 of 94 paved photos are called dirt. The labels were made in two passes by the project; the owner then checked a blind sample of 50 and agreed on 37 of the 38 they found clear (97%). That sample also showed 12 Hà Tĩnh photos the labels call unclear that the owner could read, so these numbers will change a little when those answers are added. All the dirt photos in the test split come from one Ninh Bình ride, so dirt accuracy in Cần Thơ is not measured yet: the pilot is that measurement.

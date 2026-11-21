@@ -1,5 +1,6 @@
 import csv
 import json
+import urllib.error
 
 import pytest
 
@@ -47,15 +48,16 @@ def test_spread_keeps_both_ends():
 def test_pick_keeps_untagged_small_roads_with_photos_unpaved_first(run_dir):
     proposals = [proposal("2", proposed="paved", votes="20"), proposal("1"), proposal("3", status="agree"),
                  proposal("4"), proposal("2", highway="trunk")]
-    rows = pilot.pick(proposals, pilot.photos_by_way([run_dir]), limit=10)
+    rows = pilot.pick(proposals, pilot.photos_by_way([run_dir]))
     assert [r["way_id"] for r in rows] == ["1", "2"]
     assert rows[0]["osm"] == "https://www.openstreetmap.org/way/1"
     assert len(rows[0]["photos"].split()) == 3
-    assert pilot.pick(proposals, pilot.photos_by_way([run_dir]), limit=1)[0]["way_id"] == "1"
 
 
-def fake_fetch(tagged=()):
+def fake_fetch(tagged=(), gone=()):
     def fetch(way_id):
+        if way_id in gone:
+            raise urllib.error.HTTPError("u", 410, "Gone", {}, None)
         tags = {"highway": "unclassified", **({"surface": "asphalt"} if way_id in tagged else {})}
         return {"id": int(way_id), "version": 2, "nodes": [1, 2], "tags": tags,
                 "coords": [(10.0, 105.0), (10.001, 105.002)]}
@@ -83,6 +85,7 @@ def test_build_writes_tag_fix_tasks_and_drops_ways_tagged_since(tmp_path, run_di
 @pytest.mark.parametrize("column, values, expected", [
     ("decision", ["accept"] * 9 + ["reject", ""], (9, 1, 1, True)),
     ("Task Status", ["Fixed"] * 8 + ["Not an Issue"] * 2 + ["Skipped"], (8, 2, 1, False)),
+    ("TaskStatus", ["Fixed"] * 19 + ["Not_An_Issue", "Too_Hard", "Already_Fixed"], (19, 1, 2, True)),
 ])
 def test_score_counts_accepted_against_the_90_percent_bar(tmp_path, column, values, expected):
     write_csv(tmp_path / "s.csv", [{"way_id": str(i), column: v} for i, v in enumerate(values)])
@@ -94,3 +97,10 @@ def test_score_without_a_decision_column_is_an_error(tmp_path):
     write_csv(tmp_path / "s.csv", [{"way_id": "1", "other": "x"}])
     with pytest.raises(ValueError):
         pilot.score(tmp_path / "s.csv")
+
+
+def test_limit_counts_only_ways_still_untagged(tmp_path, run_dir):
+    write_csv(tmp_path / "proposals.csv", [proposal("1"), proposal("2", proposed="paved")])
+    rows = pilot.build(tmp_path / "proposals.csv", [run_dir], tmp_path / "out", limit=1,
+                       fetch=fake_fetch(gone={"1"}))
+    assert [r["way_id"] for r in rows] == ["2"]

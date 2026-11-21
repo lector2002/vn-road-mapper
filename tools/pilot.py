@@ -19,7 +19,8 @@ PHOTOS_PER_WAY = 3
 RS = "\x1e"
 FIELDS = ["way_id", "osm", "highway", "name", "proposed_surface", "agreement", "votes", "photos", "decision", "note"]
 ACCEPT = {"accept", "accepted", "yes", "fixed"}
-REJECT = {"reject", "rejected", "no", "not an issue", "false positive", "false_positive", "falsepositive"}
+# MapRoulette's CSV export writes TaskStatus as Fixed, Not_An_Issue, Too_Hard, Skipped, Already_Fixed, ...
+REJECT = {"reject", "rejected", "no", "not_an_issue", "not an issue", "false_positive", "false positive"}
 BAR = 0.9
 
 
@@ -55,7 +56,7 @@ def spread(items, n):
     return [items[round(i * (len(items) - 1) / (n - 1))] for i in range(n)]
 
 
-def pick(proposals, photos, limit, highways=RURAL):
+def pick(proposals, photos, highways=RURAL):
     """Ways OSM has no surface for, on small roads, with photos; unpaved first, then by votes."""
     rows = [p for p in proposals if p["status"] == "add" and p["highway"] in highways
             and photos.get(p["way_id"], {}).get(p["proposed_surface"])]
@@ -64,14 +65,21 @@ def pick(proposals, photos, limit, highways=RURAL):
              "highway": p["highway"], "name": p["name"], "proposed_surface": p["proposed_surface"],
              "agreement": p["agreement"], "votes": p["votes"],
              "photos": " ".join(spread(photos[p["way_id"]][p["proposed_surface"]], PHOTOS_PER_WAY)),
-             "decision": "", "note": ""} for p in rows[:limit]]
+             "decision": "", "note": ""} for p in rows]
 
 
-def still_untagged(rows, fetch):
-    """Drop ways someone tagged since the export ran; return the rest and their current OSM data."""
+def still_untagged(rows, fetch, limit):
+    """The first `limit` ways that still exist and have no surface tag now, with their current OSM data."""
     keep, ways = [], {}
     for r in rows:
-        way = fetch(r["way_id"])
+        if len(keep) == limit:
+            break
+        try:
+            way = fetch(r["way_id"])
+        except urllib.error.HTTPError as e:
+            if e.code in (404, 410):
+                continue
+            raise
         if "surface" not in way["tags"]:
             keep.append(r)
             ways[r["way_id"]] = way
@@ -109,8 +117,8 @@ def write(rows, ways, out_dir):
 
 
 def build(proposals_csv, run_dirs, out_dir, limit=100, fetch=export.fetch_way):
-    rows = pick(read(proposals_csv), photos_by_way(run_dirs), limit)
-    rows, ways = still_untagged(rows, fetch)
+    rows = pick(read(proposals_csv), photos_by_way(run_dirs))
+    rows, ways = still_untagged(rows, fetch, limit)
     write(rows, ways, out_dir)
     return rows
 
