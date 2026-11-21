@@ -64,8 +64,9 @@ def frames(labels_csv, cache, split="all", prefer=None, calibrate=True):
             if name not in cache or split not in ("all", label.get("split")):
                 continue
             feats, model, conf = cache[name]
+            eye = prefer.get(name, label["surface_by_eye"])
             rows.append({**label, "osm_way_id": label.get("osm_way_id") or label["kartaview_sequence"],
-                         "surface_by_eye": prefer.get(name, label["surface_by_eye"]),
+                         "surface_by_eye": "unpaved" if eye in UNPAVED else eye,
                          "label": model, "confidence": conf, "feats": feats,
                          "calibrate": calibrate or name in prefer})
     return rows

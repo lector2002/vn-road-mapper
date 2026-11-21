@@ -71,13 +71,14 @@ def test_train_prefers_checked_labels_and_scores_the_test_split(tmp_path, capsys
             feats.append([1.0 + 0.1 * i if unpaved else -1.0 - 0.1 * i, 0.0])
     labels.write_text("\n".join(rows) + "\n")
     prefer = tmp_path / "prefer.csv"
-    prefer.write_text("kartaview_sequence,photo,surface_by_eye\n0,0,paved\n")
+    prefer.write_text("kartaview_sequence,photo,surface_by_eye\n0,0,paved\n0,1,mud\n")
     cache = tmp_path / "c.npz"
     write_cache(cache, names, ["paved"] * len(names), feats)
 
     result = probe_tool.frames(labels, probe_tool.load_cache(cache), "dev", probe_tool.read_labels(prefer), calibrate=False)
     assert [r["surface_by_eye"] for r in result if r["photo"] == "0" and r["kartaview_sequence"] == "0"] == ["paved"]
-    assert sum(r["calibrate"] for r in result) == 1
+    assert [r["surface_by_eye"] for r in result if r["photo"] == "1" and r["kartaview_sequence"] == "0"] == ["unpaved"]
+    assert sum(r["calibrate"] for r in result) == 2
 
     out = tmp_path / "probe.json"
     probe_tool.main(["train", "--train", str(labels), str(cache), "dev", "--test", str(labels), str(cache), "test",
