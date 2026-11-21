@@ -12,6 +12,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from pipeline.export import export
+from pipeline.fusion.fuse import MIN_CONFIDENCE
 
 RURAL = {"unclassified", "residential", "track", "service", "tertiary", "living_street", "road"}
 FAMILY = {"paved": "paved", "dirt": "unpaved", "mud": "unpaved"}
@@ -39,7 +40,8 @@ def photos_by_way(run_dirs):
     """Per way and surface family, links to the KartaView photos whose label voted for that family."""
     found = defaultdict(lambda: defaultdict(list))
     for run in map(Path, run_dirs):
-        labels = {r["filename"]: r["label"] for r in read(run / "segmentation.csv")}
+        labels = {r["filename"]: r["label"] for r in read(run / "segmentation.csv")
+                  if float(r["confidence"]) >= MIN_CONFIDENCE}
         refs = {r["filename"]: r for r in read(run / "kartaview.csv")} if (run / "kartaview.csv").exists() else {}
         for m in read(run / "matches.csv"):
             family = FAMILY.get(labels.get(m["filename"], ""))

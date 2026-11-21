@@ -24,17 +24,19 @@ def proposal(way_id, status="add", proposed="unpaved", highway="unclassified", v
 def run_dir(tmp_path):
     run = tmp_path / "run"
     run.mkdir()
-    frames = [f"{i:06d}.jpg" for i in range(1, 7)]
-    ways = ["1", "1", "1", "1", "2", "3"]
-    labels = ["dirt", "dirt", "paved", "dirt", "paved", "paved"]
+    frames = [f"{i:06d}.jpg" for i in range(1, 8)]
+    ways = ["1", "1", "1", "1", "2", "3", "1"]
+    labels = ["dirt", "dirt", "paved", "dirt", "paved", "paved", "dirt"]
+    confidences = ["1.0"] * 6 + ["0.3"]
     write_csv(run / "matches.csv", [{"filename": f, "way_id": w} for f, w in zip(frames, ways)])
-    write_csv(run / "segmentation.csv", [{"filename": f, "label": l, "confidence": "1.0"} for f, l in zip(frames, labels)])
+    write_csv(run / "segmentation.csv", [{"filename": f, "label": l, "confidence": c}
+                                           for f, l, c in zip(frames, labels, confidences)])
     write_csv(run / "kartaview.csv", [{"filename": f, "photo_id": str(100 + i), "kartaview_way_id": "",
                                        "sequence_id": "77", "sequence_index": str(i)} for i, f in enumerate(frames)])
     return run
 
 
-def test_photos_are_only_those_that_voted_for_the_proposal(run_dir):
+def test_photos_are_only_those_that_voted_for_the_proposal_above_the_vote_confidence(run_dir):
     photos = pilot.photos_by_way([run_dir])
     assert photos["1"]["unpaved"] == [f"https://kartaview.org/details/77/{i}/track-info" for i in (0, 1, 3)]
     assert photos["1"]["paved"] == ["https://kartaview.org/details/77/2/track-info"]

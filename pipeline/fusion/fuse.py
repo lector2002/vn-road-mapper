@@ -6,6 +6,7 @@ from pathlib import Path
 from statistics import median
 
 SURFACES = ["paved", "dirt", "mud"]
+MIN_CONFIDENCE = 0.5
 CSV_FIELDS = ["way_id", "surface", "agreement", "votes", "frames", "passes", "water_share", "width_m", "width_frames"]
 
 
@@ -24,7 +25,7 @@ def load_run(run_dir):
                 for m in csv.DictReader(f) if m["way_id"] and m["filename"] in labels]
 
 
-def fuse(frames, min_confidence=0.5):
+def fuse(frames, min_confidence=MIN_CONFIDENCE):
     by_way = defaultdict(list)
     for f in frames:
         by_way[f["way_id"]].append(f)
@@ -64,7 +65,7 @@ def main(argv=None):
     p = argparse.ArgumentParser(description="Combine frame labels from one or more rides into one surface per OSM way.")
     p.add_argument("runs", type=Path, nargs="+", help="run folders, each with matches.csv and segmentation.csv (widths.csv optional)")
     p.add_argument("--out", type=Path, required=True, help="output folder (gets ways.csv)")
-    p.add_argument("--min-confidence", type=float, default=0.5, help="frames below this confidence do not vote")
+    p.add_argument("--min-confidence", type=float, default=MIN_CONFIDENCE, help="frames below this confidence do not vote")
     args = p.parse_args(argv)
     try:
         frames = [f for run in args.runs for f in load_run(run)]
