@@ -26,6 +26,13 @@ def load_labels(path):
         return list(csv.DictReader(f))
 
 
+def apply_prefer(labels, prefer):
+    """Labels in `prefer` (e.g. an owner spot check) win for the same photo."""
+    better = {(r["kartaview_sequence"], int(r["photo"])): r["surface_by_eye"] for r in prefer}
+    return [{**r, "surface_by_eye": better.get((r["kartaview_sequence"], int(r["photo"])), r["surface_by_eye"])}
+            for r in labels]
+
+
 def frame_name(label):
     return f"{label['kartaview_sequence']}_{int(label['photo']):05d}.jpg"
 
@@ -102,10 +109,15 @@ def report(result):
     return "\n".join(lines)
 
 
-def run(labels_csv, out_dir, model_id=DEFAULT_MODEL, min_confidence=0.5, segmenter=None, probe=None):
+def run(labels_csv, out_dir, model_id=DEFAULT_MODEL, min_confidence=0.5, segmenter=None, probe=None,
+        split=None, prefer=()):
     from pipeline.segmentation.segment import Segmenter
 
     labels = load_labels(labels_csv)
+    if split:
+        labels = [r for r in labels if r.get("split") == split]
+    for path in prefer:
+        labels = apply_prefer(labels, load_labels(path))
     out_dir = Path(out_dir)
     missing = fetch_frames(labels, out_dir / "frames")
     if missing:
@@ -139,12 +151,15 @@ def main(argv=None):
     p.add_argument("--model", default=DEFAULT_MODEL, help="Hugging Face model id (ADE20K label set)")
     p.add_argument("--min-confidence", type=float, default=0.5, help="frames below this confidence do not vote")
     p.add_argument("--no-probe", action="store_true", help="score SegFormer alone, without the dirt probe")
+    p.add_argument("--split", help="score only rows whose split column has this value, e.g. test")
+    p.add_argument("--prefer", type=Path, action="append", default=[],
+                   help="label CSV whose labels win for the same photo, e.g. an owner spot check (repeatable)")
     args = p.parse_args(argv)
     from pipeline.segmentation.probe import load_default
 
     try:
         result = run(args.labels, args.out, args.model, args.min_confidence,
-                     probe=None if args.no_probe else load_default())
+                     probe=None if args.no_probe else load_default(), split=args.split, prefer=args.prefer)
     except (ValueError, OSError) as e:
         sys.exit(f"error: {e}")
     print(report(result))

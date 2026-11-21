@@ -37,7 +37,7 @@ The SegFormer-feature probe from 2026-11-20, rebuilt on stage 3–4 encoder feat
 ## Limits
 
 - Test dirt comes from one ride: 34 of 34 voting unpaved frames are Ninh Bình. The 6-of-34 figure is a single-ride result.
-- The test labels are Claude's two passes; no person has checked them. A 50-photo blind sample of the test split would settle this.
+- The test labels are Claude's two passes. The owner's 50-photo blind sample later passed (37 of 38), but showed Hà Tĩnh dirt the labels left `unclear`; with his answers the numbers above become 119 of 129, 8 of 36 and 3 of 4 rides ([spot check](2026-11-21-vn-test-owner-spot-check.md)).
 - Thanh Hóa 3846189 is the same rider as two dev rides, one day apart. It is a regression check, not an independent test.
 - No mud class: mud is still part of unpaved.
 
