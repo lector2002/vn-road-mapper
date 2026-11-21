@@ -17,7 +17,7 @@ KartaView imagery is CC BY-SA 4.0. Keep downloaded frames out of the repo (`outp
 
 ## benchmark.py
 
-Scores the segmentation stage against hand labels on public KartaView photos. It downloads only the labelled photos (into `output/`), runs SegFormer and prints frame accuracy, both error directions, per-way agreement and a confusion table. It also writes `benchmark.csv` (label and confidence per photo) and `benchmark.json`.
+Scores the segmentation stage against hand labels on public KartaView photos. It downloads only the labelled photos (into `output/`), runs SegFormer (plus the dirt probe; `--no-probe` for SegFormer alone) and prints frame accuracy, both error directions, per-way agreement and a confusion table. It also writes `benchmark.csv` (label and confidence per photo) and `benchmark.json`.
 
 ```bash
 python -m tools.benchmark docs/evaluation/data/2026-11-20-can-tho-hand-labels.csv --out output/bench-can-tho
@@ -56,4 +56,14 @@ Picks evenly spaced photos (45 per sequence by default) from a list of KartaView
 
 ```bash
 python -m tools.candidates docs/evaluation/data/2026-11-21-vn-sequences.csv --out docs/evaluation/data/2026-11-21-vn-candidates.csv
+```
+
+## probe.py
+
+Builds features for, trains and scores the dirt probe (`pipeline/segmentation/probe.py`): a logistic regression on CLIP features of the road crop that switches frames SegFormer calls paved to dirt. `features` runs SegFormer and CLIP once per frame folder; `train` picks the threshold by holding out one ride at a time and prints the test split before and after. Full commands are in `docs/evaluation/2026-11-21-phase2-dirt-probe.md`.
+
+```bash
+python -m tools.probe features output/vn/frames --out output/probe-vn.npz
+python -m tools.probe train --train docs/evaluation/data/2026-11-21-vn-labels.csv output/probe-vn.npz dev \
+  --test docs/evaluation/data/2026-11-21-vn-labels.csv output/probe-vn.npz test
 ```

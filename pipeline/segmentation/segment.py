@@ -22,7 +22,7 @@ ADE20K_TO_CLASS = {
     "tree": "vegetation", "grass": "vegetation", "plant": "vegetation", "field": "vegetation",
     "flower": "vegetation", "palm": "vegetation",
 }
-CSV_FIELDS = ["filename", "label", "confidence", *CLASSES]
+CSV_FIELDS = ["filename", "label", "confidence", *CLASSES, "p_unpaved"]
 # The road in front of a bike-mounted phone: bottom 40% of the frame, middle 60% of the width.
 ROI_TOP, ROI_LEFT, ROI_RIGHT = 0.6, 0.2, 0.8
 # Vehicles, people and bike parts in the box are "other"; they hide the surface rather than describe it.
@@ -86,7 +86,7 @@ class Segmenter:
         return self.lookup[raw.numpy()]
 
 
-def run(frames_dir, out_dir, overlays=5, model_id=DEFAULT_MODEL):
+def run(frames_dir, out_dir, overlays=5, model_id=DEFAULT_MODEL, probe=None):
     frames = sorted(Path(frames_dir).glob("*.jpg"))
     if not frames:
         raise ValueError(f"no .jpg frames in {frames_dir}")
@@ -100,13 +100,15 @@ def run(frames_dir, out_dir, overlays=5, model_id=DEFAULT_MODEL):
         image = Image.open(path).convert("RGB")
         class_map = segmenter.class_map(image)
         summary = summarize(class_map)
+        if probe:
+            summary = probe.check(summary, image)
         rows.append({"filename": path.name, **summary})
         if i in keep:
             overlay(image, class_map, summary).save(out_dir / "overlays" / path.name, quality=85)
     seconds_per_frame = (time.perf_counter() - started) / len(frames)
     csv_path = out_dir / "segmentation.csv"
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS, restval="")
         writer.writeheader()
         writer.writerows(rows)
     return csv_path, rows, seconds_per_frame
@@ -118,9 +120,13 @@ def main(argv=None):
     p.add_argument("--out", type=Path, required=True, help="output folder (gets segmentation.csv and overlays/)")
     p.add_argument("--overlays", type=int, default=5, help="number of overlay images to save, spread over the clip")
     p.add_argument("--model", default=DEFAULT_MODEL, help="Hugging Face model id (ADE20K label set)")
+    p.add_argument("--no-probe", action="store_true", help="skip the dirt probe; keep SegFormer's own paved calls")
     args = p.parse_args(argv)
+    from pipeline.segmentation.probe import load_default
+
     try:
-        csv_path, rows, spf = run(args.frames, args.out, args.overlays, args.model)
+        csv_path, rows, spf = run(args.frames, args.out, args.overlays, args.model,
+                                  None if args.no_probe else load_default())
     except ValueError as e:
         sys.exit(f"error: {e}")
     print(f"{len(rows)} frames -> {csv_path} ({spf:.1f} s/frame)")

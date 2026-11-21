@@ -14,6 +14,8 @@ Claude labelled every photo in `data/2026-11-21-vn-candidates.csv` twice, from c
 
 41 of the 51 unpaved photos are in one Ninh Bình ride (2879114), which was in dev, leaving test with 7 unpaved photos. That ride moved to test and the Hà Tĩnh ride (725845, mostly unclear) moved to dev. The split is still per rider and day, 270 test and 315 dev. Dev now has 3 unpaved photos; Phase 2 tunes on the Cần Thơ hand labels instead.
 
+Later in Phase 2 all Cần Thơ moved to dev (their rides share days with the hand-labelled Cần Thơ rides) and Hà Tĩnh went back to test: 180 test, 405 dev. The table below is from before that move; the current test numbers are in [the Phase 2 write-up](2026-11-21-phase2-dirt-probe.md).
+
 ## Benchmark on these labels
 
 `python -m tools.benchmark docs/evaluation/data/2026-11-21-vn-labels.csv --out output/vn`, each ride counted as one way, current model (`nvidia/segformer-b2-finetuned-ade-512-512`):
