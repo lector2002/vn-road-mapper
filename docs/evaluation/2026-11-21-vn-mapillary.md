@@ -19,8 +19,13 @@ Dropped after a look at the photos: two train rides and one drone flight (not ro
 Same rule as the KartaView set: Claude labelled every photo twice, in two different random orders, and only photos with the same label both times are kept. Pass 1 used the whole frame, pass 2 the road part (bottom 45%, middle 70%).
 
 - Labelled twice: 255. Same label both times: 202. Two photos were called unpaved in pass 1 and paved in pass 2 and were dropped; the other 51 differences were a clear label against `unclear`, mostly frames where a dashboard fills the road box (the Sơn La ride lost all 15 photos this way).
-- Kept: 129 paved, 37 unpaved, 36 unclear.
-- These are provisional until a person checks a sample: `python -m tools.labelpage docs/evaluation/data/2026-11-21-vn-mapillary-labels.csv --sample 50 --out output/vn-mapillary-check.html`, then `tools.agreement`.
+- Kept: 128 paved, 38 unpaved, 36 unclear (after the spot check fix below).
+
+## Owner spot check
+
+The owner labelled 50 of the 202 photos on the label page (`python -m tools.labelpage docs/evaluation/data/2026-11-21-vn-mapillary-labels.csv --sample 50`), blind to these labels: `data/2026-11-21-mapillary-owner-spot-check.csv`.
+
+`python -m tools.agreement docs/evaluation/data/2026-11-21-vn-mapillary-labels.csv docs/evaluation/data/2026-11-21-mapillary-owner-spot-check.csv`: 41 of the 50 are clear to both, and 40 of those 41 agree (98%, PASS at 90%). The one difference, `bu_-YrwMOft1r37XW9wvNg/2780397915623499` (Lào Cai, Sa Pa), was labelled paved and the owner called it unpaved; the file now uses the owner's label. The Mapillary labels are kept as test data.
 
 ## Counts (paved / unpaved / unclear)
 
@@ -32,10 +37,10 @@ Same rule as the KartaView set: Claude labelled every photo twice, in two differ
 | south_central | 0 / 0 / 0 | 1 / 4 / 8 | 1 / 4 / 8 |
 | north_central | 79 / 0 / 51 | 0 / 8 / 16 | 79 / 8 / 67 |
 | red_river | 63 / 41 / 24 | 0 / 0 / 0 | 63 / 41 / 24 |
-| north_mountains | 0 / 0 / 0 | 49 / 9 / 9 | 49 / 9 / 9 |
-| all | 422 / 51 / 95 | 129 / 37 / 36 | 551 / 88 / 131 |
+| north_mountains | 0 / 0 / 0 | 48 / 10 / 9 | 48 / 10 / 9 |
+| all | 422 / 51 / 95 | 128 / 38 / 36 | 550 / 89 / 131 |
 
-The 37 new unpaved photos come from 6 sequences by 5 riders in 5 provinces; the largest share is 16 from one Đồng Nai rider (VPTD). The split stays per rider and day: Mapillary test has 65 paved, 29 unpaved, 12 unclear; dev has 64 paved, 8 unpaved, 24 unclear.
+The 38 new unpaved photos come from 7 sequences by 5 riders in 6 provinces; the largest share is 16 from one Đồng Nai rider (VPTD). The split stays per rider and day: Mapillary test has 65 paved, 29 unpaved, 12 unclear; dev has 63 paved, 9 unpaved, 24 unclear.
 
 ## Benchmark
 
