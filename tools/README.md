@@ -17,20 +17,21 @@ KartaView imagery is CC BY-SA 4.0. Keep downloaded frames out of the repo (`outp
 
 ## benchmark.py
 
-Scores the segmentation stage against hand labels on public KartaView photos. It downloads only the labelled photos (into `output/`), runs SegFormer and prints frame accuracy, both error directions, per-way agreement and a confusion table. It also writes `benchmark.csv` (label and confidence per photo) and `benchmark.json`.
+Scores the segmentation stage against hand labels on public KartaView and Mapillary photos. It downloads only the labelled photos (into `output/`), runs SegFormer and prints frame accuracy, both error directions, per-way agreement and a confusion table. It also writes `benchmark.csv` (label and confidence per photo) and `benchmark.json`.
 
 ```bash
 python -m tools.benchmark docs/evaluation/data/2026-11-20-can-tho-hand-labels.csv --out output/bench-can-tho
 ```
 
-- The CSV needs `kartaview_sequence`, `photo` (KartaView `sequenceIndex`) and `surface_by_eye` (`paved`, `unpaved` or anything else for unclear). `osm_way_id` is optional; without it each ride counts as one way. Other columns, such as `split`, are copied into `benchmark.csv`.
+- Pass one or more CSVs. Each needs `kartaview_sequence` or `mapillary_sequence`, `photo` (KartaView `sequenceIndex` or Mapillary image id) and `surface_by_eye` (`paved`, `unpaved` or anything else for unclear). `osm_way_id` is optional; without it each ride counts as one way. Other columns, such as `split`, are copied into `benchmark.csv`.
 - A frame votes when its label is `paved`, `dirt` or `mud` with confidence 0.5 or more, as in fusion.
 - A way counts when the eye labels have a strict majority.
+- Mapillary photos need a free client token in `MAPILLARY_ACCESS_TOKEN` (mapillary.com/dashboard/developers).
 - On 2026-11-21: 109 of 142 frames right, 30 unpaved called paved, 3 paved called unpaved, 5 of 8 ways. The 2026-11-20 evaluation got 112 of 142 from the original storage-host photos; the CDN copies the importer now uses are sharpened.
 
 ## labelpage.py
 
-Builds one self-contained HTML page for labelling road surface by eye on KartaView photos. It shows one photo at a time with the box the surface stage reads, never the existing label, in shuffled order. Answers (paved / unpaved / mud / water / unclear, keys 1–5) stay in the browser; at the end the page gives a CSV in the hand-label format to send back. Works on a phone.
+Builds one self-contained HTML page for labelling road surface by eye on KartaView or Mapillary photos. It shows one photo at a time with the box the surface stage reads, never the existing label, in shuffled order. Answers (paved / unpaved / mud / water / unclear, keys 1–5) stay in the browser; at the end the page gives a CSV in the hand-label format to send back. Works on a phone.
 
 ```bash
 # Owner spot check: 50 of the 177 Cần Thơ labels, in proportion to the existing labels (fixed seed)
@@ -38,6 +39,8 @@ python -m tools.labelpage docs/evaluation/data/2026-11-20-can-tho-hand-labels.cs
     --title "Spot check: Cần Thơ road surfaces (50 photos)" --out output/spot-check/can-tho-spot-check.html
 # Volunteer page for new frames; --link points at KartaView's CDN so hundreds of photos stay a small file
 python -m tools.labelpage docs/evaluation/data/2026-11-21-vn-candidates.csv --link --out output/vn-candidates.html
+# Owner spot check of the Mapillary labels (needs MAPILLARY_ACCESS_TOKEN)
+python -m tools.labelpage docs/evaluation/data/2026-11-21-vn-mapillary-labels.csv --sample 50 --out output/vn-mapillary-check.html
 ```
 
 Photos are embedded (about 130 KB each), so a page can be shared as one file; keep it out of the repo.
@@ -52,7 +55,7 @@ python -m tools.agreement docs/evaluation/data/2026-11-20-can-tho-hand-labels.cs
 
 ## candidates.py
 
-Picks evenly spaced photos (45 per sequence by default) from a list of KartaView sequences with a region and a split each. `docs/evaluation/data/2026-11-21-vn-sequences.csv` lists 13 sequences in 4 regions; the split is fixed per rider and day, so no ride has photos in both the test and dev splits.
+Picks evenly spaced photos (45 per sequence by default) from a list of KartaView or Mapillary sequences (`kartaview_sequence` or `mapillary_sequence` column) with a region and a split each. `docs/evaluation/data/2026-11-21-vn-sequences.csv` lists 13 sequences in 4 regions; the split is fixed per rider and day, so no ride has photos in both the test and dev splits. `2026-11-21-vn-mapillary-sequences.csv` adds 17 Mapillary sequences for the Southeast, the northern mountains and dirt roads; see `docs/evaluation/2026-11-21-vn-mapillary.md`.
 
 ```bash
 python -m tools.candidates docs/evaluation/data/2026-11-21-vn-sequences.csv --out docs/evaluation/data/2026-11-21-vn-candidates.csv

@@ -7,14 +7,14 @@ import json
 import sys
 from collections import Counter
 
+from tools import sources
 from tools.benchmark import load_labels
 
 CLEAR = {"paved", "unpaved", "mud", "water"}
 FAMILY = {"paved": "paved", "unpaved": "unpaved", "mud": "unpaved", "water": "water", "unclear": "unclear"}
 
 
-def key(row):
-    return row["kartaview_sequence"], int(row["photo"])
+key = sources.key
 
 
 def compare(reference, check, pass_share=0.9):
