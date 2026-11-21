@@ -8,7 +8,7 @@ Claude labelled every photo in `data/2026-11-21-vn-candidates.csv` twice, from c
 
 - Labelled twice: 585. Same label both times: 568. All 17 differences were a clear label in one pass and `unclear` in the other; no photo was called paved once and unpaved once.
 - Kept: 422 paved, 51 unpaved, 95 unclear. No mud or water was seen.
-- Both passes come from the same labeller, so this measures consistency, not accuracy. Treat the file as provisional until the owner, or a volunteer, checks a sample on the label page (`python -m tools.labelpage docs/evaluation/data/2026-11-21-vn-labels.csv --sample 50`) and `tools.agreement` passes.
+- Both passes come from the same labeller, so this measures consistency, not accuracy. The owner checked 50 test photos on the label page: 37 of 38 agree, so the file passes ([spot check](2026-11-21-vn-test-owner-spot-check.md)).
 
 ## Split change
 

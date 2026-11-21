@@ -93,3 +93,20 @@ def test_run_keeps_extra_columns_and_uses_the_ride_without_a_way(tmp_path, monke
 
     assert [w["way_id"] for w in result["per_way"]] == ["7"]
     assert "mekong,test" in (tmp_path / "out" / "benchmark.csv").read_text()
+
+
+def test_run_scores_one_split_with_preferred_labels(tmp_path, monkeypatch):
+    labels_csv = tmp_path / "labels.csv"
+    labels_csv.write_text("kartaview_sequence,photo,split,surface_by_eye\n7,1,test,unclear\n7,2,dev,paved\n")
+    prefer_csv = tmp_path / "owner.csv"
+    prefer_csv.write_text("kartaview_sequence,photo,surface_by_eye\n7,00001,unpaved\n")
+    monkeypatch.setattr(benchmark, "fetch_frames", lambda labels, frames_dir: [])
+    (tmp_path / "out" / "frames").mkdir(parents=True)
+    for name in ["7_00001.jpg", "7_00002.jpg"]:
+        (tmp_path / "out" / "frames" / name).write_bytes(jpeg())
+
+    result = benchmark.run(labels_csv, tmp_path / "out", segmenter=FakeSegmenter(), split="test", prefer=[prefer_csv])
+
+    assert result["labels"] == 1
+    assert result["clear"] == 1
+    assert [r["surface_by_eye"] for r in benchmark.load_labels(tmp_path / "out" / "benchmark.csv")] == ["unpaved"]

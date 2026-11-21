@@ -21,6 +21,9 @@ Scores the segmentation stage against hand labels on public KartaView and Mapill
 
 ```bash
 python -m tools.benchmark docs/evaluation/data/2026-11-20-can-tho-hand-labels.csv --out output/bench-can-tho
+# Test split only, with the owner's spot check answers winning where they overlap
+python -m tools.benchmark docs/evaluation/data/2026-11-21-vn-labels.csv --split test \
+    --prefer docs/evaluation/data/2026-11-21-vn-test-owner-spot-check.csv --out output/vn-test
 ```
 
 - Pass one or more CSVs. Each needs `kartaview_sequence` or `mapillary_sequence`, `photo` (KartaView `sequenceIndex` or Mapillary image id) and `surface_by_eye` (`paved`, `unpaved` or anything else for unclear). `osm_way_id` is optional; without it each ride counts as one way. Other columns, such as `split`, are copied into `benchmark.csv`.
