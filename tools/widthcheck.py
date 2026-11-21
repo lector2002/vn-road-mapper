@@ -169,7 +169,7 @@ def extract_ways(pbf, out_dir):
                 coords = [(n.lat, n.lon) for n in w.nodes]
             except osmium.InvalidLocationError:
                 return
-            if any((int(la * 100), int(lo * 100)) in cells for la, lo in coords):
+            if cells_along(coords, 100) & cells:
                 self.rows.append({"way_id": w.id, "coords": json.dumps(coords)})
 
     near = Near()
@@ -179,6 +179,16 @@ def extract_ways(pbf, out_dir):
     write(out_dir / "width_ways.csv", width.rows, WAY_FIELDS)
     write(out_dir / "neighbours.csv", near.rows, ["way_id", "coords"])
     return width.rows, near.rows
+
+
+def cells_along(coords, per_degree):
+    """Grid cells covering every segment of a way, not only its vertices, so a long straight segment is found too."""
+    cells = set()
+    for (la0, lo0), (la1, lo1) in zip(coords, coords[1:] or coords):
+        for i in range(int(min(la0, la1) * per_degree), int(max(la0, la1) * per_degree) + 1):
+            for j in range(int(min(lo0, lo1) * per_degree), int(max(lo0, lo1) * per_degree) + 1):
+                cells.add((i, j))
+    return cells
 
 
 def images_in(bbox):
@@ -198,7 +208,7 @@ def find_photos(ways, neighbours, search=None):
     grid = defaultdict(list)
     for n in neighbours:
         coords = json.loads(n["coords"])
-        for cell in {(int(la * 500), int(lo * 500)) for la, lo in coords}:
+        for cell in cells_along(coords, 500):
             grid[cell].append((str(n["way_id"]), coords))
 
     def one(way):
