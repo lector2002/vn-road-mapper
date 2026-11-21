@@ -27,3 +27,33 @@ python -m tools.benchmark docs/evaluation/data/2026-11-20-can-tho-hand-labels.cs
 - A frame votes when its label is `paved`, `dirt` or `mud` with confidence 0.5 or more, as in fusion.
 - A way counts when the eye labels have a strict majority.
 - On 2026-11-21: 109 of 142 frames right, 30 unpaved called paved, 3 paved called unpaved, 5 of 8 ways. The 2026-11-20 evaluation got 112 of 142 from the original storage-host photos; the CDN copies the importer now uses are sharpened.
+
+## labelpage.py
+
+Builds one self-contained HTML page for labelling road surface by eye on KartaView photos. It shows one photo at a time with the box the surface stage reads, never the existing label, in shuffled order. Answers (paved / unpaved / mud / water / unclear, keys 1–5) stay in the browser; at the end the page gives a CSV in the hand-label format to send back. Works on a phone.
+
+```bash
+# Owner spot check: 50 of the 177 Cần Thơ labels, in proportion to the existing labels (fixed seed)
+python -m tools.labelpage docs/evaluation/data/2026-11-20-can-tho-hand-labels.csv --sample 50 \
+    --title "Spot check: Cần Thơ road surfaces (50 photos)" --out output/spot-check/can-tho-spot-check.html
+# Volunteer page for new frames; --link points at KartaView's CDN so hundreds of photos stay a small file
+python -m tools.labelpage docs/evaluation/data/2026-11-21-vn-candidates.csv --link --out output/vn-candidates.html
+```
+
+Photos are embedded (about 130 KB each), so a page can be shared as one file; keep it out of the repo.
+
+## agreement.py
+
+Compares a second person's labels with an existing file on photos both call clear (mud counts as unpaved) and lists the disagreements. Exit code 0 when they agree on 90% or more.
+
+```bash
+python -m tools.agreement docs/evaluation/data/2026-11-20-can-tho-hand-labels.csv can-tho-spot-check-labels.csv
+```
+
+## candidates.py
+
+Picks evenly spaced photos (45 per sequence by default) from a list of KartaView sequences with a region and a split each. `docs/evaluation/data/2026-11-21-vn-sequences.csv` lists 13 sequences in 4 regions; the split is fixed per rider and day, so no ride has photos in both the test and dev splits.
+
+```bash
+python -m tools.candidates docs/evaluation/data/2026-11-21-vn-sequences.csv --out docs/evaluation/data/2026-11-21-vn-candidates.csv
+```

@@ -28,7 +28,7 @@ Prototype. All six pipeline stages run end to end on test data and on two public
 - Nothing in progress.
 
 ## Next
-Plan and expectations per phase: `docs/roadmap.md` (public imagery first, nothing that needs paid riders or labellers). Next is Phase 1, a trusted Vietnamese test set.
+Plan and expectations per phase: `docs/roadmap.md` (public imagery first, nothing that needs paid riders or labellers). Phase 1 (trusted Vietnamese test set) is in progress: label page (`tools/labelpage.py`), agreement check (`tools/agreement.py`) and 585 candidate frames from 13 KartaView sequences in 4 regions (`docs/evaluation/data/2026-11-21-vn-*.csv`, split by rider and day). Candidate labels (`2026-11-21-vn-labels.csv`, 568 kept after two passes) are provisional; on the test split the model calls 18 of 37 unpaved photos paved. Waiting on the owner's 50-photo spot check. KartaView has no northern-mountain sequences of 30+ photos.
 1. Dirt called `paved`: more Vietnamese training rides. StreetSurfaceVis (German photos) made 238 of 1,008 paved Thanh Hóa frames unpaved. Mapillary images on OSM unpaved-tagged roads: only 84 usable from 11 rides; with Cần Thơ labels 125 of 142 right, still 8 paved called unpaved. Next option: hand labels on Mapillary images of untagged rural roads (user decision). RSCD 2022 (6.0 GB) is untried: its download link returned 502 on 2026-11-20. Test with the same pass rule and the Cần Thơ labels.
 2. Find public phone footage of mud and flooded roads on Mapillary (token in the user env var `MAPILLARY_TOKEN`, read-only app).
 3. Width: needs footage on a road of known width with a known camera height; not available from public data so far.
