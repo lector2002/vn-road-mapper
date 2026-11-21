@@ -39,6 +39,11 @@ def list_photos(sequence_id):
     return sorted(photos, key=lambda p: int(p["sequenceIndex"]))
 
 
+def photo_url(photo):
+    # On 2026-11-21 the storage*.openstreetcam.org hosts in fileurlLTh resolved to a private address; the CDN copy loaded.
+    return photo.get("imageLthUrl") or photo["fileurlLTh"]
+
+
 def save_frame(data, target):
     image = Image.open(io.BytesIO(data))
     if image.height > image.width:
@@ -74,7 +79,7 @@ def run(sequence_id, out_dir, every=1):
         row = frame_row(i, photo)
         target = frames_dir / row["filename"]
         if not target.exists():
-            save_frame(get(photo["fileurlLTh"]), target)
+            save_frame(get(photo_url(photo)), target)
         rows.append(row)
         refs.append({"filename": row["filename"], "photo_id": photo["id"], "kartaview_way_id": photo.get("wayId") or ""})
     for name, fields, data in [("frames.csv", FRAME_FIELDS, rows),

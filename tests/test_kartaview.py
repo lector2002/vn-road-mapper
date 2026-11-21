@@ -67,3 +67,8 @@ def test_portrait_photo_with_sky_on_the_right_is_turned_upright(tmp_path, monkey
     assert frame.size == (64, 36)
     assert frame.getpixel((32, 2)) > 200
     assert frame.getpixel((32, 33)) < 50
+
+
+def test_photo_url_prefers_the_cdn_copy():
+    assert kartaview.photo_url({**photo(0), "imageLthUrl": "https://cdn.test/0"}) == "https://cdn.test/0"
+    assert kartaview.photo_url(photo(0)) == "https://example.test/0.jpg"

@@ -5,7 +5,7 @@ Mapping the rural roads in Vietnam that Google Maps cars never reach.
 Phone video from a motorbike → AI tags road **surface, width and flood passability** → pushed to **OpenStreetMap**.
 Goal: riders, ambulances and health stations know which roads are passable, especially in flood season.
 
-> Status: **prototype.** All six stages run end to end on test data and on two public KartaView motorbike rides ([paved rides](docs/evaluation/2026-11-20-kartaview-thanh-hoa.md), [unpaved roads and OSM widths](docs/evaluation/2026-11-20-kartaview-can-tho.md), [HeiGIT data and a 20 m piece vote](docs/evaluation/2026-11-20-heigit-and-piece-vote.md), [Cần Thơ labels and a dirt/paved probe](docs/evaluation/2026-11-20-can-tho-labels-and-probe.md)). No own ride recorded yet.
+> Status: **prototype.** All six stages run end to end on test data and on public KartaView motorbike rides ([paved rides](docs/evaluation/2026-11-20-kartaview-thanh-hoa.md), [unpaved roads and OSM widths](docs/evaluation/2026-11-20-kartaview-can-tho.md), [HeiGIT data and a 20 m piece vote](docs/evaluation/2026-11-20-heigit-and-piece-vote.md), [Cần Thơ labels and a dirt/paved probe](docs/evaluation/2026-11-20-can-tho-labels-and-probe.md)). Paved roads come out right; dirt roads are often called paved (112 of 142 labelled frames right). Mud, flood and width are untested or unconfirmed. Test data comes from public street imagery; no own rides.
 
 ## Pipeline
 
@@ -23,52 +23,64 @@ capture (phone video + GPS/IMU)
 
 ## Run
 
-```bash
-py -3.12 -m venv .venv
-.venv/Scripts/python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-.venv/Scripts/python -m pip install transformers gpxpy pillow numpy pytest
+Python 3.12 and `ffmpeg` on `PATH`.
 
-R=output/ride1
-python -m pipeline.frames.extract ride.mp4 ride.gpx --out $R
-python -m pipeline.segmentation.segment $R/frames --out $R
-python -m pipeline.width.estimate $R/frames --out $R --camera-height 1.1
-python -m pipeline.mapmatch.match $R/frames.csv --out $R
-python -m pipeline.fusion.fuse $R --out $R
-python -m pipeline.export.export $R/ways.csv --out $R
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements-model.txt -r requirements-dev.txt
 ```
 
-No ride of your own? `python -m tools.kartaview <sequence-id> --out $R` fetches a public KartaView sequence as frames + `frames.csv` (then skip `frames.extract`).
+All stages on one ride:
 
-Needs `ffmpeg` on `PATH`. Each stage's README explains its output. Tests: `python -m pytest tests`.
+```bash
+python -m pipeline.run ride.mp4 ride.gpx --out output/ride1 --camera-height 1.1
+python -m pipeline.run --kartaview <sequence-id> --every 2 --out output/kv1   # public KartaView sequence instead of a video
+```
+
+`--camera-height` turns on the width stage; `--no-export` stops before the OSM API calls. Each stage also runs on its own (`python -m pipeline.frames.extract`, `pipeline.segmentation.segment`, `pipeline.width.estimate`, `pipeline.mapmatch.match`, `pipeline.fusion.fuse`, `pipeline.export.export`); each stage's README explains its output.
+
+Score the surface stage against the Cần Thơ hand labels (downloads the 177 labelled KartaView photos into `--out`):
+
+```bash
+python -m tools.benchmark docs/evaluation/data/2026-11-20-can-tho-hand-labels.csv --out output/bench-can-tho
+```
+
+Tests: `python -m pytest tests` (`RUN_MODEL_TESTS=1` adds the real model, `RUN_NETWORK_TESTS=1` the Valhalla and OSM API calls). The default tests need only `requirements-dev.txt`.
 
 ## Repo layout
 
 ```
-capture/            Android capture app (video + GPS/IMU logging)
+capture/            Android capture app (parked: test data comes from public imagery)
 pipeline/frames/    frame extraction + GPS sync
 pipeline/segmentation/
 pipeline/width/
 pipeline/mapmatch/
 pipeline/fusion/
 pipeline/export/    OSM edit proposals + review map
-tools/              KartaView importer (public imagery as test rides)
+tools/              KartaView importer, surface benchmark
 data/samples/       small sample clips (large raw video is gitignored)
 docs/               decisions/, evaluation/
 ```
 
 ## Roadmap
 
-- [ ] **Week 1–2:** capture first test ride, frame extraction + GPS sync working
-- [ ] **Week 2:** baseline surface segmentation on sample frames
-- [ ] **Week 3:** map matching + multi-pass fusion → first tagged road segments
-- [ ] **Week 4:** flood passability layer for one district
-- [ ] **Milestone:** 10 riders, 100 km mapped in one rural district
+Public imagery first; nothing depends on hiring riders or labellers. Details and what to expect from each phase: [docs/roadmap.md](docs/roadmap.md).
 
-## How we get data
+- [x] **Phase 0:** one-command run and surface benchmark, split requirements, weekly model check in CI
+- [ ] **Phase 1:** trusted Vietnamese test set from public imagery (volunteer and owner-checked labels)
+- [ ] **Phase 2:** fix dirt roads called paved
+- [ ] **Phase 3:** OSM Vietnam community review, then a small human-reviewed pilot
+- [ ] **Phase 4:** width as classes (motorbike only / one car / two cars)
+- [ ] **Phase 5:** flood-risk layer from satellite flood maps and elevation
+- [ ] **Phase 6:** one province, self-hosted Valhalla, PostGIS
 
-1. Recruit 10–20 delivery / ride-hailing riders in one district via Zalo & Facebook driver groups, paid per km of usable footage.
+## Where the data comes from
+
+1. Public street imagery: KartaView and Mapillary sequences in Vietnam (CC BY-SA 4.0, downloaded into `output/` only).
 2. OSM Vietnam community validates and maintains the tags.
-3. Take the flood passability map to commune health stations and the district Red Cross.
+3. Later, with partners: commune health stations and the district Red Cross for flood ground truth, and riders if a partner offers footage.
 
 ## License
 
