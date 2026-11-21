@@ -29,3 +29,9 @@ def test_cli_exit_code_and_report(tmp_path, capsys):
     chk.write_text("kartaview_sequence,photo,surface_by_eye\n7,00001,paved\n")
     assert agreement.main([str(ref), str(chk)]) == 0
     assert "agree: 1 of 1 -> PASS" in capsys.readouterr().out
+
+
+def test_other_or_empty_labels_count_as_unclear():
+    result = agreement.compare([label("1", "other"), label("2", "")], [label("1", "paved"), label("2", "paved")])
+    assert (result["checked"], result["compared"], result["unclear_to_either"]) == (2, 0, 2)
+    assert result["pairs"] == {"unclear -> paved": 2}

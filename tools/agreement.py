@@ -31,7 +31,7 @@ def compare(reference, check, pass_share=0.9):
         "compared": len(clear),
         "agree": agreed,
         "passes": bool(clear) and agreed >= pass_share * len(clear),
-        "pairs": dict(Counter(f"{FAMILY[a]} -> {FAMILY[b]}" for _, a, b in pairs)),
+        "pairs": dict(Counter(f"{FAMILY.get(a, 'unclear')} -> {FAMILY.get(b, 'unclear')}" for _, a, b in pairs)),
         "disagreements": [{"kartaview_sequence": k[0], "photo": k[1], "reference": a, "check": b} for k, a, b in disagree],
     }
 
