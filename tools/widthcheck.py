@@ -181,12 +181,20 @@ def extract_ways(pbf, out_dir):
     return width.rows, near.rows
 
 
+def images_in(bbox):
+    from tools import mapillary
+    page = mapillary.graph("images", bbox=bbox, limit=2000,
+                           fields="id,captured_at,camera_type,compass_angle,computed_compass_angle,geometry,sequence")
+    images = page["data"]
+    while page.get("paging", {}).get("next"):
+        page = mapillary.read(page["paging"]["next"])
+        images += page["data"]
+    return images
+
+
 def find_photos(ways, neighbours, search=None):
     """Mapillary photos taken on each width-tagged way, looking along it."""
-    from tools import mapillary
-    search = search or (lambda bbox: mapillary.graph(
-        "images", bbox=bbox, fields="id,captured_at,camera_type,compass_angle,computed_compass_angle,geometry,sequence",
-        limit=2000)["data"])
+    search = search or images_in
     grid = defaultdict(list)
     for n in neighbours:
         coords = json.loads(n["coords"])
