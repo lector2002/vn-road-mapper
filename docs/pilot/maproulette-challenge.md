@@ -18,7 +18,7 @@ Create this at [maproulette.org](https://maproulette.org) only after the communi
 
 ## Description
 
-> Add a surface tag to small roads in the former Ô Môn district of Cần Thơ. Each suggestion comes from public KartaView photos taken along the road in May 2023 and is a guess by the open-source tool vn-road-mapper. Please check the photos before you accept. About the project and the community discussion: <WIKI PAGE>
+> Add a surface tag to small roads in and around Ô Môn, Cần Thơ. Each suggestion comes from public KartaView photos taken along the road in May 2023 and is a guess by the open-source tool vn-road-mapper. Please check the photos before you accept. About the project and the community discussion: <WIKI PAGE>
 
 ## Instructions
 

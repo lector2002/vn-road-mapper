@@ -4,7 +4,7 @@ Post to [OSM Community forum, General talk](https://community.openstreetmap.org/
 
 ---
 
-**Title:** Proposal: surface=paved/unpaved for about PILOT_N small roads in Ô Môn (Cần Thơ) from KartaView photos, reviewed by hand
+**Title:** Proposal: surface=paved/unpaved for about 57 small roads in Ô Môn (Cần Thơ) from KartaView photos, reviewed by hand
 
 Hi all,
 
@@ -12,8 +12,8 @@ I'm working on [vn-road-mapper](https://github.com/lector2002/vn-road-mapper), a
 
 Before anything is edited I'd like your opinion on a small pilot:
 
-- **Where:** the former Ô Môn district of Cần Thơ, around Long Hưng and Phước Thới, along two public KartaView rides from May 2023.
-- **What:** PILOT_N ways (PILOT_UNPAVED unpaved, PILOT_PAVED paved) tagged `highway=unclassified/residential/track/service/tertiary/living_street/road` that have no `surface` tag today. Only `surface=paved` or `surface=unpaved`; no other tag is touched and no existing tag is changed.
+- **Where:** Ô Môn, Cần Thơ, along two public KartaView rides from May 2023: 43 ways in the former Ô Môn district (today's Ô Môn and Phước Thới wards) and 14 just outside it (11 in Thới An Đông, 3 in Trường Thành).
+- **What:** 57 ways (3 unpaved, 54 paved) tagged `highway=unclassified/residential/track/service/tertiary/living_street/road` that have no `surface` tag today. Only `surface=paved` or `surface=unpaved`; no other tag is touched and no existing tag is changed.
 - **How:** a MapRoulette challenge. Each task shows the way and links to 3 of the photos that voted. A person looks, then confirms, changes or skips the tag; nothing is uploaded by a script.
 - **Proposals:** [list](https://github.com/lector2002/vn-road-mapper/blob/main/docs/pilot/data/pilot.csv) and [map](https://github.com/lector2002/vn-road-mapper/blob/main/docs/pilot/data/review.html) (download and open in a browser).
 - **Stop rule:** if mappers reject more than 10% of the proposals, the pilot stops and the model is fixed before anything else is proposed.
@@ -35,7 +35,7 @@ Thanks,
 
 ---
 
-**Tiêu đề:** Đề xuất: gắn surface=paved/unpaved cho khoảng PILOT_N đường nhỏ ở Ô Môn (Cần Thơ) từ ảnh KartaView, có người kiểm tra từng đường
+**Tiêu đề:** Đề xuất: gắn surface=paved/unpaved cho khoảng 57 đường nhỏ ở Ô Môn (Cần Thơ) từ ảnh KartaView, có người kiểm tra từng đường
 
 Chào mọi người,
 
@@ -43,8 +43,8 @@ Mình đang làm [vn-road-mapper](https://github.com/lector2002/vn-road-mapper),
 
 Trước khi sửa gì, mình muốn hỏi ý kiến mọi người về một thí điểm nhỏ:
 
-- **Ở đâu:** quận Ô Môn cũ của Cần Thơ, quanh Long Hưng và Phước Thới, dọc hai chuyến ghi ảnh KartaView công khai tháng 5/2023.
-- **Làm gì:** PILOT_N đường (PILOT_UNPAVED đường đất, PILOT_PAVED đường đã trải mặt) có thẻ `highway=unclassified/residential/track/service/tertiary/living_street/road` và hiện chưa có thẻ `surface`. Chỉ thêm `surface=paved` hoặc `surface=unpaved`; không đụng đến thẻ nào khác và không sửa thẻ đã có.
+- **Ở đâu:** Ô Môn, Cần Thơ, dọc hai chuyến ghi ảnh KartaView công khai tháng 5/2023: 43 đường trong quận Ô Môn cũ (nay là phường Ô Môn và Phước Thới) và 14 đường ngay sát bên (11 ở Thới An Đông, 3 ở Trường Thành).
+- **Làm gì:** 57 đường (3 đường đất, 54 đường đã trải mặt) có thẻ `highway=unclassified/residential/track/service/tertiary/living_street/road` và hiện chưa có thẻ `surface`. Chỉ thêm `surface=paved` hoặc `surface=unpaved`; không đụng đến thẻ nào khác và không sửa thẻ đã có.
 - **Cách làm:** một thử thách MapRoulette. Mỗi nhiệm vụ hiện con đường và đường dẫn tới 3 ảnh đã bỏ phiếu. Người làm xem ảnh rồi xác nhận, sửa hoặc bỏ qua; không có script nào tự tải lên.
 - **Danh sách đề xuất:** [bảng](https://github.com/lector2002/vn-road-mapper/blob/main/docs/pilot/data/pilot.csv) và [bản đồ](https://github.com/lector2002/vn-road-mapper/blob/main/docs/pilot/data/review.html) (tải về và mở bằng trình duyệt).
 - **Quy tắc dừng:** nếu người kiểm tra bác bỏ hơn 10% đề xuất, thí điểm dừng lại và mô hình được sửa trước khi đề xuất thêm.

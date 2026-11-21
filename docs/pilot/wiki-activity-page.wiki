@@ -7,12 +7,12 @@
 |contact=[[User:<YOUR OSM USERNAME>]]
 |start=<START DATE, at least 2 weeks after the announcement>
 |end=<START DATE + 6 weeks>
-|area=Former Ô Môn district, Cần Thơ, Vietnam
+|area=Ô Môn and neighbouring wards (Thới An Đông, Trường Thành), Cần Thơ, Vietnam
 |hashtag=#vnroadmapper
 }}
 
 == Summary ==
-A small, human-reviewed test of adding <code>surface=paved</code> or <code>surface=unpaved</code> to about PILOT_N small roads that have no surface tag, using suggestions from the open-source [https://github.com/lector2002/vn-road-mapper vn-road-mapper] tool and public KartaView street-level photos from May 2023.
+A small, human-reviewed test of adding <code>surface=paved</code> or <code>surface=unpaved</code> to about 57 small roads that have no surface tag, using suggestions from the open-source [https://github.com/lector2002/vn-road-mapper vn-road-mapper] tool and public KartaView street-level photos from May 2023.
 
 == Who ==
 * Organiser: <YOUR OSM USERNAME> (volunteer, not paid, no company or client).

@@ -4,11 +4,12 @@ Everything here is a draft for the repo owner to read, edit and send under their
 
 ## What the pilot is
 
-- **Area:** the former Ô Môn district of Cần Thơ (around Long Hưng and Phước Thới), from two public KartaView rides shot in May 2023 with a 360° camera (sequences [8293225](https://kartaview.org/details/8293225/0/track-info) and [8308169](https://kartaview.org/details/8308169/0/track-info)).
-- **Ways:** up to 100 small roads (`highway=unclassified/residential/track/service/tertiary/living_street/road`) that OSM has no `surface` tag for, where at least 5 photos voted and at least 70% agreed. The proposals are listed in [`data/pilot.csv`](data/pilot.csv) and shown on the map in [`data/review.html`](data/review.html).
+- **Area:** Ô Môn, Cần Thơ: 43 ways in the former Ô Môn district (today's Ô Môn and Phước Thới wards) and 14 just outside it (11 in Thới An Đông, 3 in Trường Thành), from two public KartaView rides shot in May 2023 with a 360° camera (sequences [8293225](https://kartaview.org/details/8293225/0/track-info) and [8308169](https://kartaview.org/details/8308169/0/track-info)).
+- **Ways:** 57 small roads (54 paved, 3 unpaved; the tool takes up to 100) (`highway=unclassified/residential/track/service/tertiary/living_street/road`) that OSM has no `surface` tag for, where at least 5 photos voted and at least 70% agreed. The proposals are listed in [`data/pilot.csv`](data/pilot.csv) and shown on the map in [`data/review.html`](data/review.html).
 - **Tag:** only `surface=paved` or `surface=unpaved`. It never overwrites a tag that is already there.
 - **Who edits:** a person checks each way against its photos in MapRoulette and approves, changes or rejects the tag. MapRoulette uploads only what they approve, under their own account. There is no script upload.
 - **Bar:** reviewers accept 90% or more of the proposals. Below that, stop and fix the model before doing more.
+- **What it measures:** almost all proposals are paved (54 of 57), because most small roads on these two rides are concrete lanes and only 3 dirt roads got enough agreeing photos. So the pilot mostly checks paved calls; dirt in the delta needs a second, dirt-heavy batch.
 
 ## Steps for the owner (in this order)
 
@@ -29,14 +30,14 @@ The Organised Editing Guidelines ask for the wiki page first, then the announcem
 OSM changes while the community discusses. Rebuilding drops ways someone has tagged in the meantime:
 
 ```bash
-python -m pipeline.run --kartaview 8293225 --every 2 --out output/pilot/kv-8293225 --no-export
-python -m pipeline.run --kartaview 8308169 --every 2 --out output/pilot/kv-8308169 --no-export
+python -m pipeline.run --kartaview 8293225 --every 6 --out output/pilot/kv-8293225 --no-export
+python -m pipeline.run --kartaview 8308169 --every 6 --out output/pilot/kv-8308169 --no-export
 python -m pipeline.fusion.fuse output/pilot/kv-8293225 output/pilot/kv-8308169 --out output/pilot/fused
 python -m pipeline.export.export output/pilot/fused/ways.csv --out output/pilot/fused
 python -m tools.pilot build output/pilot/fused/proposals.csv output/pilot/kv-8293225 output/pilot/kv-8308169 --out docs/pilot/data
 ```
 
-The two rides take about an hour each on a laptop CPU (2,700 and 3,600 photos). Only the last two commands are needed when the rides have already run.
+The two rides take about 30 and 40 minutes on a laptop CPU (900 and 1,200 photos, every 6th one). Only the last two commands are needed when the rides have already run.
 
 ## What to say about accuracy
 
