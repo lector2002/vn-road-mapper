@@ -201,7 +201,8 @@ def find_photos(ways, neighbours, search=None):
         bbox = f"{min(lons) - 2e-4},{min(lats) - 2e-4},{max(lons) + 2e-4},{max(lats) + 2e-4}"
         rows = []
         for img in search(bbox):
-            heading = img.get("computed_compass_angle") or img.get("compass_angle")
+            heading = img.get("computed_compass_angle")
+            heading = img.get("compass_angle") if heading is None else heading
             if img.get("camera_type", "perspective") != "perspective" or heading is None:
                 continue
             lon, lat = img["geometry"]["coordinates"]

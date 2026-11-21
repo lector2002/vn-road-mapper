@@ -1,6 +1,9 @@
 import pytest
 
-from tools.widthcheck import metres, on_way, pick, project, score, split
+import json
+
+from tools import mapillary
+from tools.widthcheck import find_photos, images_in, metres, on_way, pick, project, score, split
 
 # A straight north-south way about 111 m long at the equator.
 WAY = [(0.0, 0.0), (0.001, 0.0)]
@@ -72,3 +75,30 @@ def test_score_uses_median_frame_width_per_way_and_skips_ways_without_one():
     assert result["dev"]["right"] == 0 and result["dev"]["confusion"]["two_cars"] == [0, 1, 0]
     baseline = score(photos, widths, lambda way, ws: "two_cars")
     assert baseline["all"] == {**baseline["all"], "classed": 3, "right": 1}
+
+
+def photo(lat, lon, computed, compass=90):
+    return {"id": f"{lat}", "captured_at": 0, "camera_type": "perspective", "computed_compass_angle": computed,
+            "compass_angle": compass, "geometry": {"coordinates": [lon, lat]}, "sequence": "s"}
+
+
+TAGGED = {"way_id": 1, "width": 3.0, "coords": json.dumps(WAY)}
+
+
+def test_find_photos_keeps_a_north_facing_photo():
+    got = find_photos([TAGGED], [], search=lambda bbox: [photo(0.0005, 0.0, 0)])
+    assert len(got) == 1 and got[0]["heading_off"] == 0.0
+
+
+def test_find_photos_sees_a_long_neighbour_with_no_vertex_nearby():
+    # Parallel road 3 m away whose only vertices are 5 km to either side.
+    neighbour = {"way_id": 2, "coords": json.dumps([(-0.045, 0.00003), (0.045, 0.00003)])}
+    got = find_photos([TAGGED], [neighbour], search=lambda bbox: [photo(0.0005, 0.000015, 0)])
+    assert got == []
+
+
+def test_images_in_reads_every_page(monkeypatch):
+    monkeypatch.setattr(mapillary, "graph", lambda path, **kw: {"data": [1, 2], "paging": {"next": "p2"}})
+    pages = {"p2": {"data": [3], "paging": {"next": "p3"}}, "p3": {"data": [4]}}
+    monkeypatch.setattr(mapillary, "read", lambda url: pages[url])
+    assert images_in("0,0,1,1") == [1, 2, 3, 4]
