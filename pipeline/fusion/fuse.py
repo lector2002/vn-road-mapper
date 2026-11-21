@@ -49,6 +49,17 @@ def fuse(frames, min_confidence=0.5):
     return sorted(ways, key=lambda w: -w["frames"])
 
 
+def write(ways, out_dir):
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = out_dir / "ways.csv"
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+        writer.writeheader()
+        writer.writerows(ways)
+    return csv_path
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description="Combine frame labels from one or more rides into one surface per OSM way.")
     p.add_argument("runs", type=Path, nargs="+", help="run folders, each with matches.csv and segmentation.csv (widths.csv optional)")
@@ -60,12 +71,7 @@ def main(argv=None):
     except FileNotFoundError as e:
         sys.exit(f"error: {e}")
     ways = fuse(frames, args.min_confidence)
-    args.out.mkdir(parents=True, exist_ok=True)
-    csv_path = args.out / "ways.csv"
-    with open(csv_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
-        writer.writeheader()
-        writer.writerows(ways)
+    csv_path = write(ways, args.out)
     print(f"{len(frames)} matched frames from {len(args.runs)} run(s) -> {len(ways)} ways -> {csv_path}")
 
 

@@ -28,6 +28,7 @@ Prototype. All six pipeline stages run end to end on test data and on two public
 - Nothing in progress.
 
 ## Next
+Plan and expectations per phase: `docs/roadmap.md` (public imagery first, nothing that needs paid riders or labellers). Next is Phase 1, a trusted Vietnamese test set.
 1. Dirt called `paved`: more Vietnamese training rides. StreetSurfaceVis (German photos) made 238 of 1,008 paved Thanh Hóa frames unpaved. Mapillary images on OSM unpaved-tagged roads: only 84 usable from 11 rides; with Cần Thơ labels 125 of 142 right, still 8 paved called unpaved. Next option: hand labels on Mapillary images of untagged rural roads (user decision). RSCD 2022 (6.0 GB) is untried: its download link returned 502 on 2026-11-20. Test with the same pass rule and the Cần Thơ labels.
 2. Find public phone footage of mud and flooded roads on Mapillary (token in the user env var `MAPILLARY_TOKEN`, read-only app).
 3. Width: needs footage on a road of known width with a known camera height; not available from public data so far.
@@ -50,12 +51,17 @@ Prototype. All six pipeline stages run end to end on test data and on two public
 - `pipeline/*/README.md` - usage and output columns per stage.
 - `docs/decisions/` - decision records.
 - `docs/evaluation/` - results on real rides.
-- `.github/workflows/test.yml` - CI.
+- `docs/roadmap.md` - phased plan with expected results.
+- `pipeline/run.py` - all stages in one command.
+- `tools/benchmark.py` - surface benchmark on the hand-labelled KartaView photos.
+- `.github/workflows/test.yml` - CI; `.github/workflows/model.yml` - weekly real-model tests.
 
 ## Commands
 - Setup (as run 2026-11-20): `py -3.12 -m venv .venv`; `.venv/Scripts/python -m pip install torch --index-url https://download.pytorch.org/whl/cpu`; `.venv/Scripts/python -m pip install transformers gpxpy pillow numpy pytest`. `scipy` and `osmium` are also in the local venv (probe and .osc check only). `pip install -r requirements.txt` was not run.
 - Test: `.venv/Scripts/python -m pytest tests -q`. `RUN_MODEL_TESTS=1` adds the real model; `RUN_NETWORK_TESTS=1` adds Valhalla and OSM API calls.
-- Run: see README "Run".
+- Setup now: `pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu`, then `pip install -r requirements-model.txt -r requirements-dev.txt`. transformers 5.x needs torchvision for the SegFormer image processor.
+- Run: `python -m pipeline.run --kartaview 3846125 --every 20 --camera-height 1.1 --out output/kv` (about 2 min on CPU, 26 ways); see README "Run".
+- Benchmark: `python -m tools.benchmark docs/evaluation/data/2026-11-20-can-tho-hand-labels.csv --out output/bench-can-tho` (about 15 min, mostly downloads). On 2026-11-21 (CDN photos, transformers 5.20): 109 of 142 frames right, 30 unpaved called paved, 3 paved called unpaved, 5 of 8 ways. The 2026-11-20 numbers (112 of 142, 5 of 7 ways) came from the storage-host photos and an older transformers; the CDN serves `pr:sharp` (sharpened) copies.
 
 ## Decisions
 - 2026-11-20: SegFormer-B2 ADE20K instead of Vistas: no SegFormer-B2 Vistas checkpoint; Vistas labels dirt roads `Road`. `docs/decisions/2026-11-20-segmentation-model.md`.
@@ -76,6 +82,7 @@ Prototype. All six pipeline stages run end to end on test data and on two public
 - Uploading the KartaView `add` proposals: 2021 imagery, not checked against current roads.
 
 ## Last Session
-- Done: stages 1–6, CI, LICENSE; KartaView importer and real-ride evaluation; width fix; portrait-photo fix in the importer; ground-only surface label; unpaved and OSM-width test; HeiGIT comparison and 20 m piece-vote probe (no code change); 177 Cần Thơ hand labels and a SegFormer-feature probe, with and without StreetSurfaceVis and Mapillary (not adopted).
+- 2026-11-21: roadmap (`docs/roadmap.md`), one-command run, benchmark script, requirements split, model CI, KartaView CDN fix.
+- Before: stages 1–6, CI, LICENSE; KartaView importer and real-ride evaluation; width fix; portrait-photo fix in the importer; ground-only surface label; unpaved and OSM-width test; HeiGIT comparison and 20 m piece-vote probe (no code change); 177 Cần Thơ hand labels and a SegFormer-feature probe, with and without StreetSurfaceVis and Mapillary (not adopted).
 - Pending: `output/demo` is a stale broken run (delete by hand).
 - Blocker: none.
