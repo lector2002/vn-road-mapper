@@ -15,16 +15,24 @@ API = "https://graph.mapillary.com"
 FIELDS = "id,captured_at,geometry,compass_angle,camera_type,width,height,creator"
 
 
+class MissingToken(RuntimeError):
+    """Not a ValueError, so download loops that skip one unavailable photo stop on it instead."""
+
+
 def token():
     value = os.environ.get("MAPILLARY_ACCESS_TOKEN") or os.environ.get("MAPILLARY_TOKEN")
     if not value:
-        raise ValueError("set MAPILLARY_ACCESS_TOKEN to a Mapillary client token (free account, mapillary.com/dashboard/developers)")
+        raise MissingToken("set MAPILLARY_ACCESS_TOKEN to a Mapillary client token (free account, mapillary.com/dashboard/developers)")
     return value
 
 
 def graph(path, **params):
     query = urllib.parse.urlencode({**params, "access_token": token()})
-    body = json.loads(get(f"{API}/{path}?{query}"))
+    return read(f"{API}/{path}?{query}")
+
+
+def read(url):
+    body = json.loads(get(url))
     if "error" in body:
         raise ValueError(f"Mapillary: {body['error'].get('message', body['error'])}")
     return body
@@ -46,7 +54,11 @@ def photo(image):
 
 
 def list_photos(sequence_id):
-    images = graph("images", sequence_ids=sequence_id, fields=FIELDS, limit=2000)["data"]
+    page = graph("images", sequence_ids=sequence_id, fields=FIELDS, limit=2000)
+    images = page["data"]
+    while page.get("paging", {}).get("next"):
+        page = read(page["paging"]["next"])
+        images += page["data"]
     return [photo(i) for i in sorted(images, key=lambda i: (i["captured_at"], i["id"]))]
 
 

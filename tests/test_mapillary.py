@@ -33,11 +33,21 @@ def test_list_photos_sorts_by_capture_time_and_reads_the_token(monkeypatch):
     assert "sequence_ids=seq" in urls[0] and "access_token=tok" in urls[0]
 
 
-def test_missing_token_and_api_errors_are_value_errors(monkeypatch):
+def test_list_photos_follows_paging(monkeypatch):
+    monkeypatch.setenv("MAPILLARY_ACCESS_TOKEN", "tok")
+    pages = {
+        "first": {"data": [image(2, 1700000002000)], "paging": {"next": "https://graph.mapillary.com/images?after=x"}},
+        "https://graph.mapillary.com/images?after=x": {"data": [image(1, 1700000001000)]},
+    }
+    monkeypatch.setattr(mapillary, "get", lambda url: json.dumps(pages.get(url, pages["first"])).encode())
+    assert [p["id"] for p in mapillary.list_photos("seq")] == ["1", "2"]
+
+
+def test_missing_token_stops_downloads_and_api_errors_are_value_errors(monkeypatch, tmp_path):
     monkeypatch.delenv("MAPILLARY_ACCESS_TOKEN", raising=False)
     monkeypatch.delenv("MAPILLARY_TOKEN", raising=False)
-    with pytest.raises(ValueError):
-        mapillary.token()
+    with pytest.raises(mapillary.MissingToken):
+        benchmark.fetch_mapillary([{"mapillary_sequence": "s", "photo": "1"}], tmp_path)
     monkeypatch.setenv("MAPILLARY_ACCESS_TOKEN", "tok")
     monkeypatch.setattr(mapillary, "get", lambda url: b'{"error": {"message": "Unsupported get request"}}')
     with pytest.raises(ValueError, match="Unsupported"):
@@ -104,3 +114,5 @@ def test_label_page_embeds_mapillary_photos_and_keeps_their_columns():
 def test_agreement_matches_mapillary_photos_by_image_id():
     result = agreement.compare([mly("5"), mly("6", "paved")], [mly("5"), mly("6")])
     assert (result["compared"], result["agree"]) == (2, 1)
+    assert result["disagreements"] == [{"mapillary_sequence": "abc", "photo": "6", "reference": "paved", "check": "unpaved"}]
+    assert "abc/6" in agreement.report(result)
