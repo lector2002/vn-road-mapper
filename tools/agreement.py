@@ -19,7 +19,8 @@ key = sources.key
 
 def compare(reference, check, pass_share=0.9):
     """Agreement on photos both files call clear; mud counts as unpaved, as in the benchmark."""
-    ref = {key(r): r["surface_by_eye"] for r in reference}
+    rows = {key(r): r for r in reference}
+    ref = {k: r["surface_by_eye"] for k, r in rows.items()}
     pairs = [(k, ref[k], c["surface_by_eye"]) for c in check for k in [key(c)] if k in ref]
     clear = [(k, a, b) for k, a, b in pairs if a in CLEAR and b in CLEAR]
     disagree = [(k, a, b) for k, a, b in clear if FAMILY[a] != FAMILY[b]]
@@ -32,7 +33,10 @@ def compare(reference, check, pass_share=0.9):
         "agree": agreed,
         "passes": bool(clear) and agreed >= pass_share * len(clear),
         "pairs": dict(Counter(f"{FAMILY.get(a, 'unclear')} -> {FAMILY.get(b, 'unclear')}" for _, a, b in pairs)),
-        "disagreements": [{"kartaview_sequence": k[0], "photo": k[1], "reference": a, "check": b} for k, a, b in disagree],
+        "disagreements": [
+            {f"{sources.source(rows[k])}_sequence": sources.sequence(rows[k]), "photo": k[1], "reference": a, "check": b}
+            for k, a, b in disagree
+        ],
     }
 
 
@@ -47,7 +51,8 @@ def report(result, pass_share=0.9):
     if result["not_in_reference"]:
         lines.append(f"not in the reference file: {result['not_in_reference']}")
     for d in result["disagreements"]:
-        lines.append(f"  {d['kartaview_sequence']}/{d['photo']}: reference {d['reference']}, check {d['check']}")
+        sequence = d.get("kartaview_sequence") or d.get("mapillary_sequence")
+        lines.append(f"  {sequence}/{d['photo']}: reference {d['reference']}, check {d['check']}")
     return "\n".join(lines)
 
 
