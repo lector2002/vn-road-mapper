@@ -95,7 +95,8 @@ def pick_threshold(rows, p, max_paved_error):
     for t in THRESHOLDS:
         if not paved.any() or (p[paved] >= t).mean() <= max_paved_error:
             return round(float(t), 3)
-    return float(THRESHOLDS[-1])
+    print(f"warning: no threshold keeps paved errors at or under {max_paved_error:.0%}; the probe will switch nothing")
+    return 1.0
 
 
 def relabel(probe, rows):

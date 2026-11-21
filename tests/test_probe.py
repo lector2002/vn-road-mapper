@@ -51,6 +51,11 @@ def test_shipped_probe_loads():
     assert p is not None and len(p.coef) == len(p.mean) == 512 and 0 < p.threshold < 1
 
 
+def test_pick_threshold_switches_nothing_when_no_threshold_is_safe():
+    rows = [{"calibrate": True, "surface_by_eye": "paved", "label": "paved"}] * 2
+    assert probe_tool.pick_threshold(rows, np.array([0.99, 0.99]), 0.03) == 1.0
+
+
 def write_cache(path, names, labels, feats):
     np.savez(path, names=names, labels=labels, conf=np.full(len(names), 0.9), feats=np.array(feats, float))
 
