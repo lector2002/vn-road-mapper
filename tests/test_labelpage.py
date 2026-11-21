@@ -55,3 +55,8 @@ def test_link_mode_points_at_the_cdn_without_downloading():
     labels = [{"kartaview_sequence": "7", "photo": "1"}]
     items, _ = labelpage.items(labels, photos_of=lambda s: photos, download=None, link=True)
     assert items[0]["src"] == "https://cdn/1"
+
+
+def test_csv_values_cannot_close_the_page_script():
+    html = labelpage.render("t", "</script><script>alert(1)</script>", [])
+    assert html.count("</script>") == 1

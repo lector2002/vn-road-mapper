@@ -71,7 +71,9 @@ def items(rows, photos_of=list_photos, download=get, seed=1, link=False):
 
 def render(page_id, title, page_items):
     page = {"id": page_id, "title": title, "columns": KEY_COLUMNS, "items": page_items}
-    return TEMPLATE.read_text(encoding="utf-8").replace("/*DATA*/null", json.dumps(page))
+    # "<\/" keeps a "</script>" inside a CSV value from ending the page's script block.
+    data = json.dumps(page).replace("</", "<\\/")
+    return TEMPLATE.read_text(encoding="utf-8").replace("/*DATA*/null", data)
 
 
 def main(argv=None):
