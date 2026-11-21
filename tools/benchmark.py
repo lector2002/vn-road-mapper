@@ -18,7 +18,7 @@ from tools.kartaview import get, list_photos, photo_url, save_frame
 
 EYE = ["paved", "unpaved"]
 FAMILY = {"paved": "paved", "dirt": "unpaved", "mud": "unpaved"}
-CSV_FIELDS = ["kartaview_sequence", "photo", "osm_way_id", "surface_by_eye", "filename", "label", "confidence"]
+CSV_FIELDS = ["kartaview_sequence", "photo", "osm_way_id", "surface_by_eye", "filename", "label", "confidence", "p_unpaved"]
 
 
 def load_labels(path):
@@ -102,7 +102,7 @@ def report(result):
     return "\n".join(lines)
 
 
-def run(labels_csv, out_dir, model_id=DEFAULT_MODEL, min_confidence=0.5, segmenter=None):
+def run(labels_csv, out_dir, model_id=DEFAULT_MODEL, min_confidence=0.5, segmenter=None, probe=None):
     from pipeline.segmentation.segment import Segmenter
 
     labels = load_labels(labels_csv)
@@ -116,8 +116,12 @@ def run(labels_csv, out_dir, model_id=DEFAULT_MODEL, min_confidence=0.5, segment
         path = out_dir / "frames" / frame_name(label)
         if not path.exists():
             continue
-        summary = summarize(segmenter.class_map(Image.open(path).convert("RGB")))
-        rows.append({**label, "filename": path.name, "label": summary["label"], "confidence": summary["confidence"]})
+        image = Image.open(path).convert("RGB")
+        summary = summarize(segmenter.class_map(image))
+        if probe:
+            summary = probe.check(summary, image)
+        rows.append({**label, "filename": path.name, "label": summary["label"], "confidence": summary["confidence"],
+                     "p_unpaved": summary.get("p_unpaved", "")})
     with open(out_dir / "benchmark.csv", "w", newline="", encoding="utf-8") as f:
         extra = [k for k in (labels[0] if labels else {}) if k not in CSV_FIELDS]
         writer = csv.DictWriter(f, fieldnames=CSV_FIELDS + extra, restval="")
@@ -134,9 +138,13 @@ def main(argv=None):
     p.add_argument("--out", type=Path, required=True, help="output folder (gets frames/, benchmark.csv, benchmark.json)")
     p.add_argument("--model", default=DEFAULT_MODEL, help="Hugging Face model id (ADE20K label set)")
     p.add_argument("--min-confidence", type=float, default=0.5, help="frames below this confidence do not vote")
+    p.add_argument("--no-probe", action="store_true", help="score SegFormer alone, without the dirt probe")
     args = p.parse_args(argv)
+    from pipeline.segmentation.probe import load_default
+
     try:
-        result = run(args.labels, args.out, args.model, args.min_confidence)
+        result = run(args.labels, args.out, args.model, args.min_confidence,
+                     probe=None if args.no_probe else load_default())
     except (ValueError, OSError) as e:
         sys.exit(f"error: {e}")
     print(report(result))

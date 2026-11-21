@@ -14,7 +14,7 @@ def stages(monkeypatch, tmp_path):
         with open(out / "frames.csv", "w", newline="") as f:
             csv.writer(f).writerows([["filename", "timestamp", "lat", "lon", "heading"], ["000001.jpg", "", "1", "2", ""]])
 
-    def segmentation(frames_dir, out, overlays, model):
+    def segmentation(frames_dir, out, overlays, model, probe=None):
         calls.append("segmentation")
         with open(out / "segmentation.csv", "w", newline="") as f:
             csv.writer(f).writerows([["filename", "label", "confidence"], ["000001.jpg", "dirt", "0.9"]])
@@ -62,7 +62,7 @@ def test_cli_rejects_a_camera_height_that_is_not_positive(tmp_path):
 
 def test_cli_passes_the_start_time_to_the_frames_stage(monkeypatch, tmp_path):
     seen = {}
-    monkeypatch.setattr(pipeline_run, "run", lambda *args: seen.setdefault("start", args[-1]) and [])
+    monkeypatch.setattr(pipeline_run, "run", lambda *args, **kw: seen.setdefault("start", args[-1]) and [])
     pipeline_run.main([str(tmp_path / "ride.mp4"), str(tmp_path / "ride.gpx"), "--out", str(tmp_path),
                        "--start", "2026-03-01T09:00:00+07:00"])
     assert seen["start"].isoformat() == "2026-03-01T02:00:00+00:00"

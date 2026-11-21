@@ -5,7 +5,7 @@ Mapping the rural roads in Vietnam that Google Maps cars never reach.
 Phone video from a motorbike → AI tags road **surface, width and flood passability** → pushed to **OpenStreetMap**.
 Goal: riders, ambulances and health stations know which roads are passable, especially in flood season.
 
-> Status: **prototype.** All six stages run end to end on test data and on public KartaView motorbike rides ([paved rides](docs/evaluation/2026-11-20-kartaview-thanh-hoa.md), [unpaved roads and OSM widths](docs/evaluation/2026-11-20-kartaview-can-tho.md), [HeiGIT data and a 20 m piece vote](docs/evaluation/2026-11-20-heigit-and-piece-vote.md), [Cần Thơ labels and a dirt/paved probe](docs/evaluation/2026-11-20-can-tho-labels-and-probe.md)). Paved roads come out right; dirt roads are often called paved (112 of 142 labelled frames right). Mud, flood and width are untested or unconfirmed. Test data comes from public street imagery; no own rides.
+> Status: **prototype.** All six stages run end to end on test data and on public KartaView motorbike rides ([paved rides](docs/evaluation/2026-11-20-kartaview-thanh-hoa.md), [unpaved roads and OSM widths](docs/evaluation/2026-11-20-kartaview-can-tho.md), [HeiGIT data and a 20 m piece vote](docs/evaluation/2026-11-20-heigit-and-piece-vote.md), [Cần Thơ labels and a dirt/paved probe](docs/evaluation/2026-11-20-can-tho-labels-and-probe.md)). Paved roads come out right. SegFormer alone calls about half of dirt photos paved; a CLIP probe on the road crop now rechecks its paved calls (on the Vietnam test split, 17 of 34 dirt photos called paved drops to 6, [Phase 2](docs/evaluation/2026-11-21-phase2-dirt-probe.md)). Mud, flood and width are untested or unconfirmed. Test data comes from public street imagery; no own rides.
 
 ## Pipeline
 
@@ -69,8 +69,8 @@ docs/               decisions/, evaluation/
 Public imagery first; nothing depends on hiring riders or labellers. Details and what to expect from each phase: [docs/roadmap.md](docs/roadmap.md).
 
 - [x] **Phase 0:** one-command run and surface benchmark, split requirements, weekly model check in CI
-- [ ] **Phase 1:** trusted Vietnamese test set from public imagery. Done: label page, agreement check, 585 candidate frames from 13 sequences in 4 regions, labelled twice (568 kept; the model calls about half of the dirt photos paved). Left: the owner's 50-photo spot check
-- [ ] **Phase 2:** fix dirt roads called paved
+- [x] **Phase 1:** trusted Vietnamese test set from public imagery. Done: label page, agreement check, 585 candidate frames from 13 sequences in 4 regions, labelled twice (568 kept; the model calls about half of the dirt photos paved). The owner's Cần Thơ spot check failed (38 of 44), so those labels only train
+- [x] **Phase 2:** fix dirt roads called paved: a CLIP probe on the road crop; test split 110 → 120 of 128, dirt called paved 17 → 6 of 34 ([write-up](docs/evaluation/2026-11-21-phase2-dirt-probe.md))
 - [ ] **Phase 3:** OSM Vietnam community review, then a small human-reviewed pilot
 - [ ] **Phase 4:** width as classes (motorbike only / one car / two cars)
 - [ ] **Phase 5:** flood-risk layer from satellite flood maps and elevation

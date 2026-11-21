@@ -9,13 +9,13 @@ from pipeline.export import export
 from pipeline.frames import extract
 from pipeline.fusion import fuse
 from pipeline.mapmatch import match
-from pipeline.segmentation import segment
+from pipeline.segmentation import probe, segment
 from pipeline.width import estimate
 from tools import kartaview
 
 
 def run(out, video=None, gpx=None, kartaview_sequence=None, every=1, camera_height=None, model=segment.DEFAULT_MODEL,
-        overlays=5, valhalla=match.DEFAULT_URL, do_export=True, start=None, log=print):
+        overlays=5, valhalla=match.DEFAULT_URL, do_export=True, start=None, log=print, no_probe=False):
     out = Path(out)
     if kartaview_sequence:
         log(f"frames: KartaView sequence {kartaview_sequence}")
@@ -24,7 +24,7 @@ def run(out, video=None, gpx=None, kartaview_sequence=None, every=1, camera_heig
         log(f"frames: {video}")
         extract.run(video, gpx, out, start=start)
     log("segmentation")
-    segment.run(out / "frames", out, overlays, model)
+    segment.run(out / "frames", out, overlays, model, None if no_probe else probe.load_default())
     if camera_height:
         log("width")
         estimate.run(out / "frames", out, camera_height, overlays, model)
@@ -51,6 +51,7 @@ def main(argv=None):
                    help="with a video: start time with timezone; overrides the video's creation_time tag")
     p.add_argument("--model", default=segment.DEFAULT_MODEL)
     p.add_argument("--overlays", type=int, default=5)
+    p.add_argument("--no-probe", action="store_true", help="use SegFormer's own dirt/paved call, not the probe")
     p.add_argument("--valhalla", default=match.DEFAULT_URL, help="Valhalla server; self-host for real riders' tracks")
     p.add_argument("--no-export", action="store_true", help="stop after fusion (export calls the OSM API)")
     args = p.parse_args(argv)
@@ -62,7 +63,7 @@ def main(argv=None):
         p.error("--camera-height must be positive")
     try:
         ways = run(args.out, args.video, args.gpx, args.kartaview, args.every, args.camera_height, args.model,
-                   args.overlays, args.valhalla, not args.no_export, args.start)
+                   args.overlays, args.valhalla, not args.no_export, args.start, no_probe=args.no_probe)
     except (ValueError, OSError, subprocess.CalledProcessError, urllib.error.URLError) as e:
         sys.exit(f"error: {e}")
     print(f"{len(ways)} ways -> {args.out}")
