@@ -4,9 +4,10 @@ All 36 unpaved photos in the Mapillary Mekong set (`2026-11-22-mekong-dirt.md`) 
 
 - `data/2026-11-22-panoramax-delta-dirt-sequences.csv`: 14 Panoramax sequences (collections), all from one ride by user `Dodko` on 2025-02-15, split `test`.
 - `data/2026-11-22-panoramax-delta-dirt-candidates.csv`: 189 photos; `photo` is the Panoramax item id.
+- `data/2026-11-22-panoramax-delta-dirt-owner-spot-check.csv`: the owner's blind answers for 50 of them.
 - `data/2026-11-22-panoramax-delta-dirt-labels.csv`: the same 189 photos labelled, with photographer and license for the credit line: 128 paved, 35 unpaved, 1 mud, 25 unclear.
 
-**Trust status: not yet trusted.** The labels count only after the owner's blind spot check reaches 90% (see below).
+**Trust status: trusted test data.** The owner's blind spot check agrees on 42 of the 43 photos both call clear (98%, the bar is 90%). His answers win where they overlap (`tools.benchmark --prefer`).
 
 ## Where the photos come from
 
@@ -36,7 +37,7 @@ Pass 1 labelled all 189 photos from the road ahead (rows 48–80%, columns 22–
 
 ## How the current model scores
 
-`python -m tools.benchmark docs/evaluation/data/2026-11-22-panoramax-delta-dirt-labels.csv --out output/panoramax-delta` (add `--no-probe` for SegFormer alone). Each collection counts as one way. These are scores against labels the owner has not checked yet.
+`python -m tools.benchmark docs/evaluation/data/2026-11-22-panoramax-delta-dirt-labels.csv --out output/panoramax-delta` (add `--no-probe` for SegFormer alone). Each collection counts as one way. These are scores against the label file before the owner check; `--prefer docs/evaluation/data/2026-11-22-panoramax-delta-dirt-owner-spot-check.csv` applies his answers, which changes one unpaved frame to paved.
 
 | | SegFormer alone | With the dirt probe |
 |---|---|---|
@@ -54,4 +55,8 @@ So the set is useful mainly as a hard test: to score it fairly, the surface stag
 
 ## Owner spot check
 
-50 of the 189 photos, spread over the labels, are on a blind page: `python -m tools.labelpage docs/evaluation/data/2026-11-22-panoramax-delta-dirt-labels.csv --sample 50 --title "Panoramax delta dirt: blind spot check" --out panoramax-spot-check.html`. Agreement, once the owner's CSV is back: `python -m tools.agreement docs/evaluation/data/2026-11-22-panoramax-delta-dirt-labels.csv <owner csv>`.
+50 of the 189 photos, spread over the labels, are on a blind page: `python -m tools.labelpage docs/evaluation/data/2026-11-22-panoramax-delta-dirt-labels.csv --sample 50 --title "Panoramax delta dirt: blind spot check" --out panoramax-spot-check.html`. Agreement: `python -m tools.agreement docs/evaluation/data/2026-11-22-panoramax-delta-dirt-labels.csv docs/evaluation/data/2026-11-22-panoramax-delta-dirt-owner-spot-check.csv`.
+
+- 50 checked, 43 clear to both: **42 agree (98%), so the labels pass**.
+- The other 7 were unclear in the labels; the owner also called one of them unclear.
+- The one disagreement was unpaved in the labels and paved for the owner: a grey, dusty lane between banana plants and a house (`36d8d04a-3796-435d-8544-9fd841f6dc80` / `09b0bfce-cdd1-4d5d-9d1f-7182e607ef57`), most likely worn concrete.
