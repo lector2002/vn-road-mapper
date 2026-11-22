@@ -124,14 +124,14 @@ def train_main(args):
     calibrated = any(r["calibrate"] and r["surface_by_eye"] == "paved" for r in grass)
     grass_threshold = pick_threshold(grass, p_grass, args.max_paved_error, GRASS_LABELS) if args.grass and calibrated else 1.0
     probe = fit([r["feats"] for r in train], y, args.c)
-    probe.threshold, probe.grass_threshold = threshold, grass_threshold
+    probe.threshold, probe.grass_threshold, probe.road_check = threshold, grass_threshold, True
     probe.info = {"clip_model": CLIP_MODEL, "rides": sorted({r["ride"] for r in train}),
                   "frames": len(train), "unpaved": int(y.sum()), "c": args.c, "max_paved_error": args.max_paved_error,
                   "grass_frames": len(grass), "grass_unpaved": int(target(grass).sum()) if grass else 0}
     print(f"trained on {len(train)} frames ({int(y.sum())} unpaved) from {len(probe.info['rides'])} rides, "
           f"threshold {threshold}, grass threshold {grass_threshold} ({len(grass)} grass frames)")
     test = frames(args.test[0], load_cache(args.test[1]), args.test[2])
-    print("\nSegFormer:\n" + report(score(test)) + "\n\nWith the dirt probe:\n" + report(score(relabel(probe, test))))
+    print("\nSegFormer:\n" + report(score(test)) + "\n\nWith the dirt probe (the road check needs class maps; score it with tools.benchmark):\n" + report(score(relabel(probe, test))))
     for cache in args.check:
         rows = [{"label": lab, "feats": f} for f, lab, _ in load_cache(cache).values()]
         after = relabel(probe, rows)

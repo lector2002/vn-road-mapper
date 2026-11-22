@@ -25,6 +25,8 @@ output/ride1/overlays/*.jpg     5 frames spread over the clip, colored by class
 4. `label` is the ground class (`paved`, `dirt`, `mud`, `water`, `vegetation`) with the most pixels in that box. `other` pixels (vehicles, people, bike parts, walls) are left out, because they hide the surface. If less than 40% of the box is ground, `label` is `other`.
 5. `confidence` is the share of the ground pixels in the box that the winning class covers (0–1). It is a pixel share, not a model probability.
 6. The other six columns give the share of every class, so later stages can use them.
+7. With the shipped probe (`surface_probe.json`), frames SegFormer calls `paved` get the CLIP dirt check (`probe.py`).
+8. Frames that would not vote (`vegetation`, `other`, or confidence under 0.5) get the road check: the box around the `paved` and `dirt` pixels in the bottom 55% of the frame goes to CLIP, which scores it against "concrete / asphalt / paved road" and "dirt / gravel road, muddy track" prompts. If CLIP and the majority of those pixels agree, that becomes the label, with CLIP's probability as `confidence`. This is what lets narrow delta concrete lanes in greenery vote (`docs/evaluation/2026-11-22-delta-road-crop.md`). `--no-probe` turns both checks off.
 
 ## Model
 

@@ -1,6 +1,8 @@
 import json
+import os
 
 import numpy as np
+import pytest
 from PIL import Image
 
 from pipeline.segmentation import probe
@@ -74,7 +76,7 @@ def test_load_default_is_none_without_a_file(tmp_path):
 def test_shipped_probe_loads():
     p = probe.load_default()
     assert p is not None and len(p.coef) == len(p.mean) == 512 and 0 < p.threshold < 1
-    assert p.grass_threshold == 1.0
+    assert p.grass_threshold == 1.0 and p.road_check
 
 
 def test_pick_threshold_switches_nothing_when_no_threshold_is_safe():
@@ -137,3 +139,80 @@ def test_train_picks_a_grass_threshold_from_vegetation_frames(tmp_path, capsys):
     assert "8 vegetation or other, 4 switched to dirt" in capsys.readouterr().out
     probe_tool.main(args + ["--no-grass"])
     assert probe.Probe.load(tmp_path / "p.json").grass_threshold == 1.0
+
+
+class FakeRoadEmbedder:
+    def __init__(self, p):
+        self.p, self.crops = p, []
+
+    def p_unpaved(self, image):
+        self.crops.append(image.size)
+        return self.p
+
+    def __call__(self, images):
+        return np.ones((len(images), 1))
+
+
+def lane_map(pixel_class="paved", width=40, height=100):
+    from pipeline.segmentation.segment import CLASSES
+
+    class_map = np.full((height, width), CLASSES.index("vegetation"))
+    class_map[60:100, 15:25] = CLASSES.index(pixel_class)
+    class_map[10:20, 0:40] = CLASSES.index("paved")
+    return class_map
+
+
+def test_road_box_covers_road_pixels_below_the_top_only():
+    assert probe.road_box(lane_map()) == ((15, 60, 25, 100), "paved")
+    assert probe.road_box(lane_map("dirt"))[1] == "dirt"
+    assert probe.road_box(lane_map(), min_share=0.2) is None
+
+
+def test_road_check_labels_a_vegetation_frame_when_clip_and_pixels_agree():
+    embedder = FakeRoadEmbedder(0.1)
+    p = probe.Probe(mean=[0], scale=[1], coef=[1], intercept=0, embedder=embedder, road_check=True)
+    image = Image.new("RGB", (40, 100))
+    assert p.check({"label": "vegetation", "confidence": 0.9}, image, lane_map()) == {
+        "label": "paved", "confidence": 0.9, "p_unpaved": 0.1
+    }
+    assert embedder.crops == [(10, 40)]
+    embedder.p = 0.8
+    assert p.check({"label": "vegetation", "confidence": 0.9}, image, lane_map()) == {"label": "vegetation", "confidence": 0.9}
+    assert p.check({"label": "other", "confidence": 0.0}, image, lane_map("dirt"))["label"] == "dirt"
+
+
+def test_road_check_runs_only_on_frames_that_do_not_vote():
+    embedder = FakeRoadEmbedder(0.9)
+    p = probe.Probe(mean=[0], scale=[1], coef=[1], intercept=0, embedder=embedder, road_check=True)
+    image = Image.new("RGB", (40, 100))
+    assert p.check({"label": "dirt", "confidence": 0.8}, image, lane_map("dirt")) == {"label": "dirt", "confidence": 0.8}
+    assert p.check({"label": "paved", "confidence": 0.4}, image, lane_map("dirt"))["label"] == "dirt"
+    assert len(embedder.crops) == 1
+    p.road_check = False
+    assert p.check({"label": "vegetation", "confidence": 0.9}, image, lane_map("dirt"))["label"] == "vegetation"
+    assert p.check({"label": "vegetation", "confidence": 0.9}, image)["label"] == "vegetation"
+    assert len(embedder.crops) == 1
+
+
+def test_road_check_round_trips_and_defaults_to_off(tmp_path):
+    probe.Probe(mean=[0], scale=[1], coef=[1], intercept=0, road_check=True).save(tmp_path / "p.json")
+    assert probe.Probe.load(tmp_path / "p.json").road_check
+    d = json.loads((tmp_path / "p.json").read_text())
+    del d["road_check"]
+    (tmp_path / "p.json").write_text(json.dumps(d))
+    assert not probe.Probe.load(tmp_path / "p.json").road_check
+
+
+@pytest.mark.skipif(os.environ.get("RUN_MODEL_TESTS") != "1", reason="downloads CLIP; set RUN_MODEL_TESTS=1")
+def test_real_clip_gives_a_zero_shot_unpaved_probability():
+    p = probe.Embedder().p_unpaved(Image.new("RGB", (64, 64), (128, 120, 110)))
+    assert 0 <= p <= 1
+
+
+def test_frames_the_road_check_leaves_alone_still_get_the_dirt_probe():
+    embedder = FakeRoadEmbedder(0.8)
+    p = probe.Probe(mean=[0], scale=[1], coef=[10], intercept=0, embedder=embedder, road_check=True, grass_threshold=0.9)
+    image = Image.new("RGB", (40, 100))
+    assert p.check({"label": "vegetation", "confidence": 0.9}, image, lane_map())["label"] == "dirt"
+    assert p.check({"label": "paved", "confidence": 0.4}, image, lane_map())["label"] == "dirt"
+    assert len(embedder.crops) == 2
