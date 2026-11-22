@@ -291,7 +291,8 @@ def main(argv=None):
         with open(args.rows.with_name("flood_risk.csv"), "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(["way_id", "flood_risk"])
-            writer.writerows(sorted({(r["way_id"], risk(r, rules)) for r in rows}))
+            latest = {r["way_id"]: risk(r, rules) for r in sorted(rows, key=lambda r: EVENTS[r["event"]][0])}
+            writer.writerows(sorted(latest.items()))
 
 
 def extract_ways(pbf, out):
