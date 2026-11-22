@@ -1,0 +1,120 @@
+import csv
+import json
+
+import pytest
+
+from tools import province
+
+
+def box(*bounds):
+    return pytest.importorskip("shapely.geometry").box(*bounds)
+
+
+def write_boundary(out, poly):
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "boundary.geojson").write_text(json.dumps(
+        {"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {},
+                                                     "geometry": poly.__geo_interface__}]}))
+
+
+def photo(source, seq, pid, lat, lon, t):
+    return {"source": source, "sequence": seq, "photo_id": pid, "sequence_index": "", "lat": lat, "lon": lon,
+            "captured_at": t, "heading": "", "url": ""}
+
+
+def test_thin_keeps_newest_photo_per_cell():
+    rows = [photo("mapillary", "a", "1", 18.0, 105.0, 1000), photo("mapillary", "b", "2", 18.0001, 105.0001, 2000),
+            photo("kartaview", "c", "3", 18.01, 105.0, 500)]
+    kept = province.thin(rows, 50)
+    assert sorted(r["photo_id"] for r in kept) == ["2", "3"]
+
+
+def test_kartaview_photos_only_inside_outline(tmp_path, monkeypatch):
+    cache = tmp_path / "kv.json"
+    cache.write_text(json.dumps([
+        {"id": "1", "nwLat": "18.5", "nwLng": "105.0", "seLat": "18.0", "seLng": "105.5"},
+        {"id": "2", "nwLat": "10.5", "nwLng": "106.0", "seLat": "10.0", "seLng": "106.5"}]))
+    listed = []
+
+    def list_photos(seq):
+        listed.append(seq)
+        return [{"id": "10", "lat": "18.2", "lng": "105.2", "shotDate": "2025-01-01 00:00:00", "sequenceIndex": "0",
+                 "imageLthUrl": "https://cdn/x.jpg"},
+                {"id": "11", "lat": "19.2", "lng": "105.2", "shotDate": "2025-01-01 00:00:01", "sequenceIndex": "1"}]
+
+    monkeypatch.setattr(province.kartaview, "list_photos", list_photos)
+    rows = province.kartaview_photos(box(105.0, 18.0, 106.0, 19.0), cache)
+    assert listed == ["1"]
+    assert [r["photo_id"] for r in rows] == ["10"] and rows[0]["url"] == "https://cdn/x.jpg"
+
+
+def test_frames_makes_one_run_per_sequence_and_skips_downloaded(tmp_path, monkeypatch):
+    rows = [photo("mapillary", "s1", "1", 18.0, 105.0, 1_700_000_000_000),
+            photo("mapillary", "s1", "2", 18.001, 105.0, 1_700_000_001_000),
+            photo("kartaview", "9", "3", 18.002, 105.0, 1_700_000_002_000)]
+    province.write(tmp_path / "imagery.csv", province.IMAGERY_FIELDS, rows)
+    got = []
+    monkeypatch.setattr(province, "download", lambda r, target: (got.append(r["photo_id"]), target.write_bytes(b"x")))
+    province.frames(tmp_path, log=lambda *a: None)
+    assert sorted(got) == ["1", "2", "3"]
+    run = tmp_path / "runs" / "mapillary-s1"
+    assert [r["filename"] for r in province.read(run / "frames.csv")] == ["1.jpg", "2.jpg"]
+    assert province.read(run / "frames.csv")[0]["timestamp"] == "2023-11-14T22:13:20.000Z"
+    assert province.read(tmp_path / "runs" / "kartaview-9" / "kartaview.csv")[0]["sequence_id"] == "9"
+    got.clear()
+    province.frames(tmp_path, log=lambda *a: None)
+    assert got == []
+
+
+def test_match_uses_present_frames_and_skips_done_runs(tmp_path, monkeypatch):
+    run = tmp_path / "runs" / "mapillary-s1"
+    (run / "frames").mkdir(parents=True)
+    province.write(run / "frames.csv", ["filename", "timestamp", "lat", "lon", "heading"],
+                   [{"filename": f"{i}.jpg", "timestamp": "2025-01-01T00:00:0%dZ" % i, "lat": 18, "lon": 105, "heading": ""}
+                    for i in range(3)])
+    for i in (0, 1):
+        (run / "frames" / f"{i}.jpg").write_bytes(b"x")
+    calls = []
+
+    def fake_run(frames_csv, out_dir, url, costing):
+        rows = province.read(frames_csv)
+        calls.append((len(rows), url, costing))
+        province.write(out_dir / "matches.csv", ["filename", "way_id"], [{"filename": r["filename"], "way_id": "1"} for r in rows])
+
+    from pipeline.mapmatch import match as mm
+    monkeypatch.setattr(mm, "run", fake_run)
+    province.match(tmp_path, "http://localhost:8002", log=lambda *a: None)
+    province.match(tmp_path, "http://localhost:8002", log=lambda *a: None)
+    assert calls == [(2, "http://localhost:8002", "motor_scooter")]
+
+
+def test_timed_appends_step_seconds(tmp_path, capsys):
+    assert province.timed(tmp_path, "frames", lambda: 3) == 3
+    province.timed(tmp_path, "segment", lambda: None)
+    with open(tmp_path / "timings.csv") as f:
+        assert [r["step"] for r in csv.DictReader(f)] == ["frames", "segment"]
+
+
+def test_outline_reads_boundary(tmp_path):
+    write_boundary(tmp_path, box(1, 2, 3, 4))
+    assert province.outline(tmp_path).bounds == (1, 2, 3, 4)
+
+
+def test_db_rows_from_step_files(tmp_path, monkeypatch):
+    write_boundary(tmp_path, box(105, 18, 106, 19))
+    data = json.loads((tmp_path / "boundary.geojson").read_text())
+    data["features"][0]["properties"]["name"] = "Tỉnh Hà Tĩnh"
+    (tmp_path / "boundary.geojson").write_text(json.dumps(data))
+
+    class FakeWays:
+        def __init__(self, pbf):
+            self.ways = {"7": {"id": 7, "tags": {"highway": "track"}, "coords": [(18.1, 105.1), (18.2, 105.2)]},
+                         "8": {"id": 8, "tags": {"highway": "footway"}, "coords": [(18.1, 105.1), (18.2, 105.2)]}}
+
+    monkeypatch.setattr(province, "Ways", FakeWays)
+    province.write(tmp_path / "flood_risk.csv", province.FLOOD_FIELDS,
+                   [{"way_id": 7, "history": "", "water": "3", "z_min": "2.5", "rel_min": "-1", "flood_risk": "high"}])
+    rows = province.db_rows(tmp_path)
+    assert rows["roads"] == [(7, "Tỉnh Hà Tĩnh", "track", "", "", "LINESTRING(105.1 18.1,105.2 18.2)")]
+    assert rows["flood"] == [(7, "Tỉnh Hà Tĩnh", None, 3.0, 2.5, -1.0, "high")]
+    assert rows["votes"] == [] and rows["proposals"] == []

@@ -121,3 +121,27 @@ python -m pipeline.export.export output/ride1/ways.csv --out output/ride1 --floo
 - `build` writes `flood_ways.csv`: per road and EMS area, the layer values from `pipeline/flood/risk.py` and whether EMS mapped 2 or more of its 25 m points under water. The history layer only uses UNOSAT and EMS maps from before that flood.
 - `score` fits the thresholds on the dev floods (EMSR754, EMSR844), prints each risk class's flooded share for dev and test (EMSR848) and per area, and writes `flood_risk.csv` (`way_id`, `flood_risk`).
 - `flood_risk` goes into `proposals.csv` for reviewers and health stations. It is never written to OSM.
+
+## province.py
+
+Runs the whole pipeline over one province from public imagery: every Mapillary and KartaView photo inside the province's OSM boundary, thinned to the newest photo per 50 m cell. It is how Phase 6 was run (`docs/evaluation/2026-11-22-phase6-ha-tinh.md`). Each step can be re-run; it keeps what is downloaded, labelled and matched, and only works on new imagery. Step times go to `timings.csv`. Needs `MAPILLARY_ACCESS_TOKEN`, the `osmium` command (`apt install osmium-tool`) and Docker.
+
+```bash
+pip install -r requirements-province.txt
+P=output/province/ha-tinh
+python -m tools.province boundary $P --name "Tỉnh Hà Tĩnh" --pbf vietnam-latest.osm.pbf   # Geofabrik extract
+docker run -d --name valhalla -p 8002:8002 -v $PWD/$P/valhalla:/custom_files \
+  -e build_admins=False -e build_elevation=False -e build_time_zones=False ghcr.io/valhalla/valhalla-scripted:latest
+python -m tools.province imagery $P      # Mapillary coverage tiles + KartaView sequences (the VN list is cached)
+python -m tools.province frames $P       # one run folder per sequence under $P/runs
+python -m tools.province segment $P      # SegFormer + dirt probe, CPU
+python -m tools.province match $P        # self-hosted Valhalla, motor_scooter costing
+python -m tools.province flood $P --flood-dir output/flood   # after floodcheck fetch; DEM tiles for the province
+python -m tools.province fuse $P         # ways.csv, proposals.csv, changes.osc, review.html
+docker run -d --name postgis -e POSTGRES_PASSWORD=roads -e POSTGRES_DB=roads -p 5432:5432 postgis/postgis:16-3.4
+python -m tools.province db $P --dsn postgresql://postgres:roads@localhost:5432/roads
+```
+
+- Proposals come from the local OSM extract, not the OSM API, so a province makes no bulk OSM requests. `changes.osc` is for review; nothing is uploaded.
+- `db` replaces the province's rows in `roads`, `votes`, `proposals` and `flood`, so new runs and other provinces share one database.
+- To add imagery later, re-run `imagery` then the steps after it; only runs with new photos are labelled and matched again.

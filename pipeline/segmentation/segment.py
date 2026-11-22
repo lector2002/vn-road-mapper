@@ -86,14 +86,14 @@ class Segmenter:
         return self.lookup[raw.numpy()]
 
 
-def run(frames_dir, out_dir, overlays=5, model_id=DEFAULT_MODEL, probe=None):
+def run(frames_dir, out_dir, overlays=5, model_id=DEFAULT_MODEL, probe=None, segmenter=None):
     frames = sorted(Path(frames_dir).glob("*.jpg"))
     if not frames:
         raise ValueError(f"no .jpg frames in {frames_dir}")
     out_dir = Path(out_dir)
     (out_dir / "overlays").mkdir(parents=True, exist_ok=True)
     keep = set(np.linspace(0, len(frames) - 1, min(overlays, len(frames)), dtype=int).tolist()) if overlays else set()
-    segmenter = Segmenter(model_id)
+    segmenter = segmenter or Segmenter(model_id)
     rows = []
     started = time.perf_counter()
     for i, path in enumerate(frames):
