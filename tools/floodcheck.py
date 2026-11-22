@@ -28,12 +28,16 @@ HDX_API = "https://data.humdata.org/api/3/action/package_search?fq=organization:
 GSW = "https://storage.googleapis.com/global-surface-water/downloads2021/occurrence/occurrence_{}v1_4_2021.tif"
 GSW_TILES = ["100E_30N", "100E_20N", "100E_10N", "110E_20N"]
 DEM = "https://copernicus-dem-30m.s3.amazonaws.com/{0}/{0}.tif"
+# Global Flood Database v1.4 (Tellman et al. 2021): 913 MODIS flood events 2000-2018, 250 m, one zip per event.
+GFD = "https://storage.googleapis.com/gfd_v1_4/"
+GFD_LIST = "https://storage.googleapis.com/storage/v1/b/gfd_v1_4/o?maxResults=1000&fields=nextPageToken,items(name)"
+VIETNAM = (102.1, 8.4, 109.5, 23.5)
 # Copernicus EMS flood activations in Vietnam with published maps; the first two are fitted on, the last scored.
 EVENTS = {"EMSR754": ("2024-09-09", "dev"), "EMSR844": ("2025-10-08", "dev"), "EMSR848": ("2025-10-29", "test")}
 RES = 1e-4  # degrees, about 11 m, for burning flood polygons
 REL_RADIUS_M = 500
 FLOODED_SAMPLES = 2  # about 25-50 m of road under water
-RULES = {"history": 0.2, "rel": -1.0, "z": 5.0, "water": 50}
+RULES = {"history": 0.2, "gfd": 0.1, "rel": -1.0, "z": 5.0, "water": 50}
 WAY_FIELDS = ["way_id", "highway", "surface", "bridge", "name", "coords"]
 ROW_FIELDS = ["event", "aoi", "split", "way_id", "highway", "length_m"] + FEATURES + ["flooded_share", "flooded"]
 
@@ -67,6 +71,8 @@ def fetch(out):
     for la, lo in sorted({t for a in load_ems(out, polygons=False) for t in tiles(a["bounds"])}):
         name = f"Copernicus_DSM_COG_10_N{la:02d}_00_E{lo:03d}_00_DEM"
         jobs.append((DEM.format(name), out / "dem" / f"{name}.tif"))
+    (out / "gfd").mkdir(exist_ok=True)
+    jobs += [(GFD + name, out / "gfd" / name) for name in gfd_events_near(VIETNAM, out / "gfd" / "events.json")]
     jobs = list({str(p): (u, p) for u, p in jobs if not Path(p).exists()}.values())
     with ThreadPoolExecutor(6) as pool:
         list(pool.map(lambda j: get(*j), jobs))
@@ -74,6 +80,61 @@ def fetch(out):
     for z in glob.glob(str(out / "unosat" / "*" / "*.zip")) + glob.glob(str(out / "ems" / "*.zip")):
         with zipfile.ZipFile(z) as f:
             f.extractall(Path(z).with_suffix(""))
+
+
+def gfd_events_near(bounds, cache):
+    """Names of the Global Flood Database event zips whose map overlaps `bounds`, read from each map's header.
+    Events mapped in several tiles (23 large floods, none in Southeast Asia) are skipped."""
+    import rasterio
+    if Path(cache).exists():
+        return json.loads(Path(cache).read_text())
+    names, token = [], ""
+    while True:
+        page = json.loads(urllib.request.urlopen(GFD_LIST + (f"&pageToken={token}" if token else ""), timeout=60).read())
+        names += [i["name"] for i in page.get("items", []) if i["name"].endswith(".zip")]
+        if not (token := page.get("nextPageToken")):
+            break
+
+    def box(name):
+        for _ in range(3):
+            try:
+                with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR"), \
+                        rasterio.open(f"zip+{GFD}{name}!{name[:-4]}.tif") as src:
+                    return tuple(src.bounds)
+            except rasterio.errors.RasterioIOError:
+                pass
+        return None
+
+    with ThreadPoolExecutor(16) as pool:
+        near = [n for n, b in zip(names, pool.map(box, names)) if b and overlaps(b, bounds)]
+    Path(cache).write_text(json.dumps(near))
+    return near
+
+
+def gfd_maps(out):
+    """(start date, raster, bounds) for every map tile of every downloaded Global Flood Database event."""
+    import zipfile
+    import rasterio
+    maps = []
+    for path in sorted(glob.glob(str(Path(out) / "gfd" / "DFO_*.zip"))):
+        d = re.search(r"From_(\d{4})(\d{2})(\d{2})", path)
+        for member in sorted(m for m in zipfile.ZipFile(path).namelist() if m.endswith(".tif")):
+            with rasterio.open(f"zip://{path}!{member}") as src:
+                maps.append((f"{d[1]}-{d[2]}-{d[3]}", src.name, tuple(src.bounds)))
+    return maps
+
+
+def gfd_counts(maps, bounds):
+    """How many events flooded each 250 m pixel of `bounds`, leaving out permanent water."""
+    import rasterio
+    from rasterio.merge import merge
+    counts = None
+    for _, raster, _ in maps:
+        with rasterio.open(raster) as src:
+            array, transform = merge([src], bounds=bounds, indexes=[1, 5], nodata=0)
+        wet = (np.nan_to_num(array[0]) > 0) & (np.nan_to_num(array[1]) == 0)
+        counts = wet.astype(np.uint8) if counts is None else counts + wet
+    return Grid(counts, transform, None) if counts is not None else None
 
 
 def tiles(bounds):
@@ -167,8 +228,8 @@ def build(out, log=print):
         w["coords"] = json.loads(w["coords"])
         la, lo = [c[0] for c in w["coords"]], [c[1] for c in w["coords"]]
         w["box"] = (min(lo), min(la), max(lo), max(la))
-    areas, unosat = load_ems(out), unosat_maps(out)
-    log(f"{len(ways)} roads, {len(areas)} EMS areas, {len(unosat)} UNOSAT maps")
+    areas, unosat, gfd = load_ems(out), unosat_maps(out), gfd_maps(out)
+    log(f"{len(ways)} roads, {len(areas)} EMS areas, {len(unosat)} UNOSAT maps, {len(gfd)} Global Flood Database events")
     rows = []
     for area in areas:
         w, s, e, n = area["bounds"]
@@ -180,6 +241,7 @@ def build(out, log=print):
                       glob.glob(str(out / "dem" / f"Copernicus_DSM_COG_10_N{la:02d}_00_E{lo:03d}_00_DEM.tif"))], pad)
         z = np.where(dem.array == dem.nodata, np.nan, dem.array) if dem.nodata is not None else dem.array.astype(float)
         rel = Grid(relative_height(z, round(REL_RADIUS_M / (abs(dem.transform.a) * 111_320))), dem.transform, None)
+        events = gfd_counts([m for m in gfd if m[0] < area["date"] and overlaps(m[2], pad)], pad)
         water = mosaic(sorted(glob.glob(str(out / "gsw" / "occurrence_*.tif"))), pad)
         mine = [x for x in ways if x["box"][0] >= w and x["box"][2] <= e and x["box"][1] >= s and x["box"][3] <= n]
         kept = 0
@@ -187,7 +249,7 @@ def build(out, log=print):
             pts = samples(x["coords"])
             if np.nanmin(at(inside, np.vstack([pts, np.asarray(x["coords"], dtype=float)]))) < 1:
                 continue
-            f = way_features(x["coords"], history, water, dem, rel)
+            f = way_features(x["coords"], history, water, dem, rel, events)
             wet = at(truth, pts) > 0
             rows.append({"event": area["event"], "aoi": area["aoi"], "split": area["split"], "way_id": x["way_id"],
                          "highway": x["highway"], "length_m": round(float(along_m(x["coords"])[-1])), **f,
@@ -234,9 +296,9 @@ def score(rows, rules=RULES):
     return {"roads": len(rows), "flooded": flooded, "classes": {c: dict(by[c]) for c in (*RISKS, "")},
             "caught": by["high"]["flooded"] / flooded if flooded else float("nan"),
             "auc": auc([order[risk(r, rules)] for r in ranked], [r["flooded"] for r in ranked]),
-            "auc_single": {k: auc([(r[k] if r[k] != "" else 0) * (-1 if k in ("z_min", "rel_min") else 1)
+            "auc_single": {k: auc([(r.get(k, "") if r.get(k, "") != "" else 0) * (-1 if k in ("z_min", "rel_min") else 1)
                                    for r in ranked], [r["flooded"] for r in ranked])
-                           for k in ("history", "water", "z_min", "rel_min")}}
+                           for k in ("history", "water", "z_min", "rel_min", "gfd", "gfd_events")}}
 
 
 def fit(rows, min_caught=0.25):
@@ -246,10 +308,11 @@ def fit(rows, min_caught=0.25):
     for z in (3, 5, 8, 12, 20):
         for rel in (-0.5, -1, -2, -3):
             for water in (10, 25, 50, 75):
-                rules = dict(RULES, z=z, rel=rel, water=water)
-                result = score(rows, rules)
-                if result["caught"] >= min_caught and (best is None or result["auc"] > best[0]):
-                    best = (result["auc"], rules)
+                for gfd in (0.1, 0.2, 0.5, 1.0):
+                    rules = dict(RULES, z=z, rel=rel, water=water, gfd=gfd)
+                    result = score(rows, rules)
+                    if result["caught"] >= min_caught and (best is None or result["auc"] > best[0]):
+                        best = (result["auc"], rules)
     return best[1] if best else RULES
 
 

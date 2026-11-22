@@ -40,6 +40,13 @@ def test_way_features_and_blank_without_layer():
     assert way_features(way)["z_min"] == ""
 
 
+def test_way_features_counts_global_flood_database_events():
+    way = [(10.0095, 105.0002), (10.0095, 105.0018)]
+    f = way_features(way, gfd=grid([[0, 3]]))
+    assert 0 < f["gfd"] < 1 and f["gfd_events"] == 3
+    assert way_features(way)["gfd"] == ""
+
+
 @pytest.mark.parametrize("f, expected", [
     ({"history": 0.5, "water": 0, "z_min": 30, "rel_min": 5}, "high"),
     ({"history": 0.0, "water": 0, "z_min": 3, "rel_min": -2}, "high"),
@@ -50,6 +57,13 @@ def test_way_features_and_blank_without_layer():
 ])
 def test_risk_classes(f, expected):
     assert risk(f, RULES) == expected
+
+
+def test_global_flood_database_makes_a_way_high_only_when_a_rule_is_set():
+    f = {"history": 0.0, "water": 0, "z_min": 30, "rel_min": 1, "gfd": 0.4}
+    assert risk(f, dict(RULES, gfd=0.2)) == "high"
+    assert risk(f, dict(RULES, gfd=0.5)) == "low"
+    assert risk(f, RULES) == "low"
 
 
 def test_auc():
@@ -113,3 +127,25 @@ def test_short_roads_get_a_middle_point():
 def test_along_m_is_the_way_length():
     m = 1 / (111_320 * np.cos(np.radians(10)))
     assert along_m([(10.0, 105.0), (10.0, 105.0 + 26 * m)])[-1] == pytest.approx(26, abs=0.1)
+
+
+def test_gfd_counts_events_and_leaves_out_permanent_water(tmp_path):
+    import zipfile
+    import rasterio
+    from rasterio.transform import from_origin
+    from tools.floodcheck import gfd_counts, gfd_maps
+    (tmp_path / "gfd").mkdir()
+    for name, perm in (("DFO_1_From_20050101_to_20050110", 0), ("DFO_2_From_20100101_to_20100110", 1)):
+        tif = tmp_path / f"{name}.tif"
+        bands = np.zeros((5, 2, 2), "float32")
+        bands[0] = [[1, 0], [1, np.nan]]
+        bands[4, 0, 0] = perm
+        with rasterio.open(tif, "w", driver="GTiff", width=2, height=2, count=5, dtype="float32",
+                           crs="EPSG:4326", transform=from_origin(105.0, 10.02, 0.01, 0.01)) as dst:
+            dst.write(bands)
+        with zipfile.ZipFile(tmp_path / "gfd" / f"{name}.zip", "w") as z:
+            z.write(tif, tif.name)
+    maps = gfd_maps(tmp_path)
+    assert [m[0] for m in maps] == ["2005-01-01", "2010-01-01"]
+    counts = gfd_counts(maps, (105.0, 10.0, 105.02, 10.02))
+    assert counts.array.tolist() == [[1, 0], [2, 0]]
