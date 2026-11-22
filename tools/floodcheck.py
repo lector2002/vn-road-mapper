@@ -58,7 +58,9 @@ def fetch(out):
     get(HDX_API, out / "unosat" / "hdx.json")
     for p in json.loads((out / "unosat" / "hdx.json").read_text())["result"]["results"]:
         if "viet" in (p["name"] + p["title"]).lower():
-            jobs += [(r["url"], out / "unosat" / r["url"].rsplit("/", 1)[1]) for r in p["resources"] if r["format"] == "SHP"]
+            (out / "unosat" / p["name"]).mkdir(exist_ok=True)
+            jobs += [(r["url"], out / "unosat" / p["name"] / r["url"].rsplit("/", 1)[1])
+                     for r in p["resources"] if r["format"] == "SHP"]
     (out / "gsw").mkdir(exist_ok=True)
     jobs += [(GSW.format(t), out / "gsw" / GSW.format(t).rsplit("/", 1)[1]) for t in GSW_TILES]
     (out / "dem").mkdir(exist_ok=True)
@@ -69,7 +71,7 @@ def fetch(out):
     with ThreadPoolExecutor(6) as pool:
         list(pool.map(lambda j: get(*j), jobs))
     import zipfile
-    for z in glob.glob(str(out / "unosat" / "*.zip")) + glob.glob(str(out / "ems" / "*.zip")):
+    for z in glob.glob(str(out / "unosat" / "*" / "*.zip")) + glob.glob(str(out / "ems" / "*.zip")):
         with zipfile.ZipFile(z) as f:
             f.extractall(Path(z).with_suffix(""))
 
