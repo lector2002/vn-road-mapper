@@ -160,3 +160,12 @@ def test_seconds_by_step_sums_reruns(tmp_path, capsys):
     rows = province.read(tmp_path / "timings.csv")
     assert set(province.seconds_by_step(tmp_path)) == {"segment"}
     assert province.seconds_by_step(tmp_path)["segment"] == sum(int(r["seconds"]) for r in rows)
+
+
+def test_runs_of_leaves_out_sequences_a_refresh_dropped(tmp_path):
+    for name in ("mapillary-old", "mapillary-new"):
+        (tmp_path / "runs" / name).mkdir(parents=True)
+        province.write(tmp_path / "runs" / name / "frames.csv", ["filename"], [])
+    assert [p.name for p in province.runs_of(tmp_path)] == ["mapillary-new", "mapillary-old"]
+    province.write(tmp_path / "imagery.csv", ["source", "sequence"], [{"source": "mapillary", "sequence": "new"}])
+    assert [p.name for p in province.runs_of(tmp_path)] == ["mapillary-new"]

@@ -259,7 +259,11 @@ def frames(out, workers=8, log=print):
 
 
 def runs_of(out):
-    return sorted(p for p in (Path(out) / "runs").iterdir() if (p / "frames.csv").exists())
+    """Run folders of the sequences in the current imagery.csv; runs a refresh dropped stay on disk but are left out."""
+    out = Path(out)
+    current = {run_name(r) for r in read(out / "imagery.csv")} if (out / "imagery.csv").exists() else None
+    return sorted(p for p in (out / "runs").iterdir()
+                  if (p / "frames.csv").exists() and (current is None or p.name in current))
 
 
 def present(folder):
