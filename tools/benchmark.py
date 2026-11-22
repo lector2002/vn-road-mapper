@@ -1,4 +1,4 @@
-"""Score the surface stage against hand labels on public KartaView and Mapillary photos, in one command.
+"""Score the surface stage against hand labels on public KartaView, Mapillary and Panoramax photos, in one command.
 
 Downloads only the labelled photos (into --out, never the repo), runs segmentation on them and prints the
 confusion table, frame accuracy and per-way agreement used in docs/evaluation/.
@@ -14,7 +14,7 @@ from PIL import Image
 
 from pipeline.fusion.fuse import SURFACES
 from pipeline.segmentation.segment import DEFAULT_MODEL, summarize
-from tools import mapillary, sources
+from tools import mapillary, panoramax, sources
 from tools.kartaview import get, list_photos, photo_url, save_frame
 
 EYE = ["paved", "unpaved"]
@@ -40,7 +40,7 @@ frame_name = sources.frame_name
 
 
 def fetch_mapillary(labels, frames_dir, url_of=mapillary.photo_url, download=get):
-    """Mapillary photos are saved as served: their thumbnails are already upright, unlike KartaView's portrait shots."""
+    """Mapillary and Panoramax photos are saved as served: they are already upright, unlike KartaView's portrait shots."""
     missing = []
     for lab in labels:
         try:
@@ -52,8 +52,10 @@ def fetch_mapillary(labels, frames_dir, url_of=mapillary.photo_url, download=get
     return missing
 
 
-def fetch_frames(labels, frames_dir, photos_of=list_photos, download=get, mapillary_url=mapillary.photo_url):
-    """Download the labelled photos; `photo` is KartaView's sequenceIndex or the Mapillary image id."""
+def fetch_frames(labels, frames_dir, photos_of=list_photos, download=get, mapillary_url=mapillary.photo_url,
+                 panoramax_url=panoramax.photo_url):
+    """Download the labelled photos; `photo` is KartaView's sequenceIndex, the Mapillary image id or the Panoramax item id."""
+    by_id = {"mapillary": mapillary_url, "panoramax": panoramax_url}
     frames_dir = Path(frames_dir)
     frames_dir.mkdir(parents=True, exist_ok=True)
     by_sequence = defaultdict(list)
@@ -64,8 +66,8 @@ def fetch_frames(labels, frames_dir, photos_of=list_photos, download=get, mapill
         todo = [lab for lab in group if not (frames_dir / frame_name(lab)).exists()]
         if not todo:
             continue
-        if source == "mapillary":
-            missing += fetch_mapillary(todo, frames_dir, mapillary_url, download)
+        if source in by_id:
+            missing += fetch_mapillary(todo, frames_dir, by_id[source], download)
             continue
         photos = {int(p["sequenceIndex"]): p for p in photos_of(sequence)}
         for lab in todo:
@@ -164,9 +166,9 @@ def run(labels_csv, out_dir, model_id=DEFAULT_MODEL, min_confidence=0.5, segment
 
 
 def main(argv=None):
-    p = argparse.ArgumentParser(description="Score surface labels against hand labels on KartaView and Mapillary photos.")
+    p = argparse.ArgumentParser(description="Score surface labels against hand labels on KartaView, Mapillary and Panoramax photos.")
     p.add_argument("labels", type=Path, nargs="+",
-                   help="label CSVs: kartaview_sequence or mapillary_sequence, photo (sequenceIndex or image id), "
+                   help="label CSVs: kartaview_sequence, mapillary_sequence or panoramax_sequence, photo (sequenceIndex or image id), "
                         "surface_by_eye, optional osm_way_id (else each ride counts as one way)")
     p.add_argument("--out", type=Path, required=True, help="output folder (gets frames/, benchmark.csv, benchmark.json)")
     p.add_argument("--model", default=DEFAULT_MODEL, help="Hugging Face model id (ADE20K label set)")
