@@ -267,24 +267,48 @@ def present(folder):
     return [r for r in read(folder / "frames.csv") if (folder / "frames" / r["filename"]).exists()]
 
 
-def segment(out, log=print):
+_worker = {}
+
+
+def _segment_init(threads):
+    import torch
     from pipeline.segmentation import probe
     from pipeline.segmentation import segment as seg
-    dirt_probe, segmenter = probe.load_default(), None
-    done = frames_done = 0
+    torch.set_num_threads(threads)
+    _worker.update(probe=probe.load_default(), segmenter=seg.Segmenter(seg.DEFAULT_MODEL))
+
+
+def _segment_one(folder):
+    from pipeline.segmentation import segment as seg
     started = time.perf_counter()
+    rows = seg.run(folder / "frames", folder, overlays=0, probe=_worker["probe"], segmenter=_worker["segmenter"])[1]
+    return folder.name, len(rows), time.perf_counter() - started
+
+
+def pending_segmentation(out):
+    """Runs whose downloaded photos are not all labelled yet, largest first so workers finish together."""
+    todo = []
     for folder in runs_of(out):
         names = {r["filename"] for r in present(folder)}
         labelled = folder / "segmentation.csv"
-        if not names or (labelled.exists() and {r["filename"] for r in read(labelled)} == names):
-            continue
-        segmenter = segmenter or seg.Segmenter(seg.DEFAULT_MODEL)
-        seg.run(folder / "frames", folder, overlays=0, probe=dirt_probe, segmenter=segmenter)
-        done += 1
-        frames_done += len(names)
-        log(f"segment {folder.name}: {len(names)} frames ({frames_done} so far, "
-            f"{(time.perf_counter() - started) / frames_done:.2f} s/frame)")
-    return done, frames_done
+        if names and not (labelled.exists() and {r["filename"] for r in read(labelled)} == names):
+            todo.append((len(names), folder))
+    return [f for _, f in sorted(todo, key=lambda t: (-t[0], t[1].name))]
+
+
+def segment(out, workers=2, log=print):
+    """SegFormer + dirt probe on CPU; `workers` processes share the cores, which beats one process on all of them."""
+    import multiprocessing
+    from concurrent.futures import ProcessPoolExecutor
+    todo = pending_segmentation(out)
+    threads = max(1, (os.cpu_count() or 1) // workers)
+    done = 0
+    with ProcessPoolExecutor(workers, mp_context=multiprocessing.get_context("spawn"),
+                             initializer=_segment_init, initargs=(threads,)) as ex:
+        for name, n, seconds in ex.map(_segment_one, todo):
+            done += n
+            log(f"segment {name}: {n} frames in {seconds:.0f} s ({done} so far)")
+    return len(todo), done
 
 
 def gap_m(a, b):
@@ -514,6 +538,7 @@ def main(argv=None):
     p.add_argument("--pbf", type=Path, help="boundary: Geofabrik Vietnam extract")
     p.add_argument("--cell", type=int, default=CELL_M, help="imagery: keep the newest photo per cell of this many metres")
     p.add_argument("--sources", default="mapillary,kartaview", help="imagery: comma-separated public sources")
+    p.add_argument("--workers", type=int, default=2, help="segment: processes sharing the CPU cores")
     p.add_argument("--valhalla", default="http://localhost:8002", help="match: Valhalla server built from valhalla/")
     p.add_argument("--dsn", default=os.environ.get("PROVINCE_DSN", ""), help="db: PostGIS connection string")
     p.add_argument("--flood-dir", type=Path, default=Path("output/flood"), help="flood: the floodcheck fetch folder")
@@ -523,7 +548,7 @@ def main(argv=None):
         "boundary": lambda: boundary(args.name, args.pbf, args.out),
         "imagery": lambda: imagery(args.out, args.cell, args.sources.split(",")),
         "frames": lambda: frames(args.out),
-        "segment": lambda: segment(args.out),
+        "segment": lambda: segment(args.out, args.workers),
         "match": lambda: match(args.out, args.valhalla),
         "flood": lambda: flood(args.out, args.flood_dir),
         "fuse": lambda: fuse(args.out),
