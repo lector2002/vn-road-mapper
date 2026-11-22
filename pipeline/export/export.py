@@ -15,7 +15,7 @@ UNPAVED = {"unpaved", "dirt", "earth", "ground", "gravel", "fine_gravel", "compa
            "pebblestone", "rock"}
 NEW_TAG = {"paved": "paved", "dirt": "unpaved", "mud": "unpaved"}
 CSV_FIELDS = ["way_id", "status", "current_surface", "proposed_surface", "surface", "agreement", "votes",
-              "water_share", "width_m", "width_class", "name", "highway"]
+              "water_share", "width_m", "width_class", "flood_risk", "name", "highway"]
 COLORS = {"add": "#1f45cf", "change": "#c4452f", "agree": "#2f8a3c", "weak": "#9a9a9a", "unknown": "#b8890f"}
 
 
@@ -69,9 +69,18 @@ def review_page(geojson):
     return template.replace("/*GEOJSON*/null", json.dumps(geojson).replace("</", "<\\/"))
 
 
-def run(ways_csv, out_dir, min_agreement=0.7, min_votes=5, fetch=fetch_way):
+def read_flood(path):
+    """way_id -> flood_risk from tools.floodcheck's flood_risk.csv; empty without a file."""
+    if not path:
+        return {}
+    with open(path, encoding="utf-8") as f:
+        return {r["way_id"]: r["flood_risk"] for r in csv.DictReader(f)}
+
+
+def run(ways_csv, out_dir, min_agreement=0.7, min_votes=5, fetch=fetch_way, flood_csv=None):
     with open(ways_csv, encoding="utf-8") as f:
         fused = list(csv.DictReader(f))
+    flood = read_flood(flood_csv)
     ways, rows, edits = {}, [], []
     for w in fused:
         way = fetch(w["way_id"])
@@ -80,7 +89,8 @@ def run(ways_csv, out_dir, min_agreement=0.7, min_votes=5, fetch=fetch_way):
         status, new = decide(w, current, min_agreement, min_votes)
         rows.append({"way_id": w["way_id"], "status": status, "current_surface": current, "proposed_surface": new,
                      "surface": w["surface"], "agreement": w["agreement"], "votes": w["votes"],
-                     "water_share": w["water_share"], "width_m": w.get("width_m", ""), "width_class": w.get("width_class", ""), "name": way["tags"].get("name", ""),
+                     "water_share": w["water_share"], "width_m": w.get("width_m", ""), "width_class": w.get("width_class", ""),
+                     "flood_risk": flood.get(w["way_id"], ""), "name": way["tags"].get("name", ""),
                      "highway": way["tags"].get("highway", "")})
         if new:
             edits.append((way, {**way["tags"], "surface": new}))
@@ -101,9 +111,10 @@ def main(argv=None):
     p.add_argument("--out", type=Path, required=True, help="output folder (gets proposals.csv, changes.osc, review.html)")
     p.add_argument("--min-agreement", type=float, default=0.7)
     p.add_argument("--min-votes", type=int, default=5)
+    p.add_argument("--flood", type=Path, help="flood_risk.csv from tools.floodcheck: adds a flood_risk column")
     args = p.parse_args(argv)
     try:
-        rows = run(args.ways_csv, args.out, args.min_agreement, args.min_votes)
+        rows = run(args.ways_csv, args.out, args.min_agreement, args.min_votes, flood_csv=args.flood)
     except (urllib.error.URLError, FileNotFoundError) as e:
         sys.exit(f"error: {e}")
     counts = {s: sum(r["status"] == s for r in rows) for s in COLORS}

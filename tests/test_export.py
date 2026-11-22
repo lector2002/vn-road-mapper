@@ -71,3 +71,16 @@ def test_fetch_way_reads_real_osm_way():
     way = fetch_way("590633402")
     assert way["tags"]["highway"] == "unclassified"
     assert len(way["coords"]) == len(way["nodes"]) > 2
+
+
+def test_run_adds_flood_risk_from_floodcheck_csv(tmp_path):
+    ways_csv = write_ways(tmp_path / "ways.csv", [fused("dirt", way_id="1"), fused("paved", way_id="2")])
+    flood_csv = tmp_path / "flood_risk.csv"
+    flood_csv.write_text("way_id,flood_risk\n1,high\n", encoding="utf-8")
+    tags = {"1": {"highway": "track"}, "2": {"highway": "track"}}
+
+    rows = run(ways_csv, tmp_path / "out", fetch=fake_fetch(tags), flood_csv=flood_csv)
+
+    assert [r["flood_risk"] for r in rows] == ["high", ""]
+    with open(tmp_path / "out" / "proposals.csv", encoding="utf-8") as f:
+        assert next(csv.DictReader(f))["flood_risk"] == "high"
