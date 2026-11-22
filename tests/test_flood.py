@@ -96,3 +96,10 @@ def test_samples_ignore_dense_vertices():
     dense = [(10.0, 105.0 + i * m) for i in range(10)] + [(10.0, 105.0 + 100 * m)]
     assert len(samples(dense)) == 5
     assert len(samples([(10.0, 105.0), (10.0, 105.0)])) == 1
+
+
+def test_samples_do_not_bunch_at_the_end():
+    m = 1 / (111_320 * np.cos(np.radians(10)))
+    pts = samples([(10.0, 105.0), (10.0, 105.0 + 101 * m)])
+    assert len(pts) == 5
+    assert np.diff(pts[:, 1]).min() > 20 * m
