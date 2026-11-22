@@ -142,3 +142,21 @@ def test_pieces_split_where_photos_are_far_apart():
     rows = [{"lat": 18.0, "lon": 105.0}, {"lat": 18.0005, "lon": 105.0}, {"lat": 18.05, "lon": 105.0}]
     assert [len(p) for p in province.pieces(rows, 1000)] == [2, 1]
     assert province.pieces([]) == []
+
+
+def test_pending_segmentation_skips_runs_labelled_beyond_their_frames(tmp_path):
+    run = tmp_path / "runs" / "mapillary-s1"
+    (run / "frames").mkdir(parents=True)
+    province.write(run / "frames.csv", ["filename"], [{"filename": "0.jpg"}])
+    (run / "frames" / "0.jpg").write_bytes(b"x")
+    assert province.pending_segmentation(tmp_path) == [run]
+    province.write(run / "segmentation.csv", ["filename"], [{"filename": "0.jpg"}, {"filename": "extra.jpg"}])
+    assert province.pending_segmentation(tmp_path) == []
+
+
+def test_seconds_by_step_sums_reruns(tmp_path, capsys):
+    for seconds in (2, 3):
+        province.timed(tmp_path, "segment", lambda s=seconds: s)
+    rows = province.read(tmp_path / "timings.csv")
+    assert set(province.seconds_by_step(tmp_path)) == {"segment"}
+    assert province.seconds_by_step(tmp_path)["segment"] == sum(int(r["seconds"]) for r in rows)

@@ -291,7 +291,7 @@ def pending_segmentation(out):
     for folder in runs_of(out):
         names = {r["filename"] for r in present(folder)}
         labelled = folder / "segmentation.csv"
-        if names and not (labelled.exists() and {r["filename"] for r in read(labelled)} == names):
+        if names and not (labelled.exists() and names <= {r["filename"] for r in read(labelled)}):
             todo.append((len(names), folder))
     return [f for _, f in sorted(todo, key=lambda t: (-t[0], t[1].name))]
 
@@ -508,11 +508,19 @@ def summary(out, log=print):
         "proposed_tags": dict(Counter(r["proposed_surface"] for r in proposals if r["proposed_surface"])),
         "flood_risk_all": dict(Counter(r["flood_risk"] for r in roads.values())),
         "flood_risk_with_call": dict(Counter(roads[w]["flood_risk"] for w in fused if w in roads)),
-        "seconds": {r["step"]: int(r["seconds"]) for r in read(out / "timings.csv")},
+        "seconds": seconds_by_step(out),
     }
     (out / "summary.json").write_text(json.dumps(result, indent=1, ensure_ascii=False))
     log(json.dumps(result, ensure_ascii=False))
     return result
+
+
+def seconds_by_step(out):
+    """Seconds spent on each step, summed over every time it was run."""
+    total = defaultdict(int)
+    for r in read(Path(out) / "timings.csv"):
+        total[r["step"]] += int(r["seconds"])
+    return dict(total)
 
 
 def timed(out, step, fn, *args):
