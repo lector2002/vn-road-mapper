@@ -36,6 +36,7 @@ from tools import kartaview, mapillary
 KV_SEQUENCES = "https://api.kartaview.org/2.0/sequence/?countryCode=VN&itemsPerPage=100&page={}"
 MLY_TILES = "https://tiles.mapillary.com/maps/vtp/mly1_public/2/{}/{}/{}?access_token={}"
 CELL_M = 50
+MAX_GAP_M = 1000
 IMAGERY_FIELDS = ["source", "sequence", "photo_id", "sequence_index", "lat", "lon", "captured_at", "heading", "url"]
 FLOOD_FIELDS = ["way_id", "highway", "surface", "length_m", "history", "water", "z_min", "rel_min", "flood_risk"]
 
@@ -286,21 +287,50 @@ def segment(out, log=print):
     return done, frames_done
 
 
+def gap_m(a, b):
+    lat = math.radians((float(a["lat"]) + float(b["lat"])) / 2)
+    return 111_320 * math.hypot(float(a["lat"]) - float(b["lat"]), (float(a["lon"]) - float(b["lon"])) * math.cos(lat))
+
+
+def pieces(rows, max_gap_m=MAX_GAP_M):
+    """Split a thinned sequence where photos are far apart, so Valhalla matches each stretch on its own."""
+    out = [[rows[0]]] if rows else []
+    for a, b in zip(rows, rows[1:]):
+        if gap_m(a, b) > max_gap_m:
+            out.append([])
+        out[-1].append(b)
+    return out
+
+
 def match(out, url, log=print):
     from pipeline.mapmatch import match as mm
     matched = failed = 0
     for folder in runs_of(out):
-        rows = present(folder)
+        rows = sorted(present(folder), key=lambda r: r["timestamp"])
         if len(rows) < 2 or ((folder / "matches.csv").exists() and len(read(folder / "matches.csv")) == len(rows)):
             continue
-        write(folder / "frames_present.csv", ["filename", "timestamp", "lat", "lon", "heading"], rows)
-        try:
-            mm.run(folder / "frames_present.csv", folder, url, costing="motor_scooter")
-            matched += 1
-        except (ValueError, OSError) as e:
-            failed += 1
-            log(f"match {folder.name}: {e}")
-    log(f"matched {matched} runs, {failed} failed")
+        empty = dict.fromkeys(mm.CSV_FIELDS[1:], "")
+        result = []
+        todo = pieces(rows)
+        while todo:
+            piece = todo.pop(0)
+            if len(piece) < 2:
+                result += [{"filename": r["filename"], **empty} for r in piece]
+                continue
+            write(folder / "piece.csv", ["filename", "timestamp", "lat", "lon", "heading"], piece)
+            try:
+                result += mm.run(folder / "piece.csv", folder / "piece", url, costing="motor_scooter")[1]
+                matched += 1
+            except (ValueError, OSError) as e:
+                if len(piece) >= 4:  # one bad stretch should not lose the rest: retry each half
+                    half = len(piece) // 2
+                    todo[:0] = [piece[:half], piece[half:]]
+                    continue
+                failed += 1
+                result += [{"filename": r["filename"], **empty} for r in piece]
+                log(f"match {folder.name}: {len(piece)} photos unmatched: {str(e)[:120]}")
+        write(folder / "matches.csv", mm.CSV_FIELDS, result)
+    log(f"matched {matched} stretches, {failed} failed")
     return matched, failed
 
 

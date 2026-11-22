@@ -79,7 +79,8 @@ def test_match_uses_present_frames_and_skips_done_runs(tmp_path, monkeypatch):
     def fake_run(frames_csv, out_dir, url, costing):
         rows = province.read(frames_csv)
         calls.append((len(rows), url, costing))
-        province.write(out_dir / "matches.csv", ["filename", "way_id"], [{"filename": r["filename"], "way_id": "1"} for r in rows])
+        return None, [{"filename": r["filename"], "way_id": "1", "matched_lat": "", "matched_lon": "", "distance_m": ""}
+                      for r in rows]
 
     from pipeline.mapmatch import match as mm
     monkeypatch.setattr(mm, "run", fake_run)
@@ -135,3 +136,9 @@ def test_summary_counts_coverage_by_class(tmp_path):
     assert s["km_by_highway"] == {"track": [2.0, 0.5]}
     assert s["flood_risk_with_call"] == {"high": 1} and s["proposed_tags"] == {"unpaved": 1}
     assert s["seconds"] == {"frames": 9}
+
+
+def test_pieces_split_where_photos_are_far_apart():
+    rows = [{"lat": 18.0, "lon": 105.0}, {"lat": 18.0005, "lon": 105.0}, {"lat": 18.05, "lon": 105.0}]
+    assert [len(p) for p in province.pieces(rows, 1000)] == [2, 1]
+    assert province.pieces([]) == []
