@@ -37,6 +37,7 @@ KV_SEQUENCES = "https://api.kartaview.org/2.0/sequence/?countryCode=VN&itemsPerP
 MLY_TILES = "https://tiles.mapillary.com/maps/vtp/mly1_public/2/{}/{}/{}?access_token={}"
 CELL_M = 50
 MAX_GAP_M = 1000
+KV_MAX_AGE_DAYS = 7
 IMAGERY_FIELDS = ["source", "sequence", "photo_id", "sequence_index", "lat", "lon", "captured_at", "heading", "url"]
 FLOOD_FIELDS = ["way_id", "highway", "surface", "length_m", "history", "water", "z_min", "rel_min", "flood_risk"]
 
@@ -123,8 +124,9 @@ def mapillary_photos(area):
     return list(rows.values())
 
 
-def kartaview_sequences(cache):
-    if cache.exists():
+def kartaview_sequences(cache, max_age_days=KV_MAX_AGE_DAYS):
+    """Every KartaView sequence in Vietnam, cached; listed again once the cache is older than max_age_days."""
+    if cache.exists() and time.time() - cache.stat().st_mtime < max_age_days * 86400:
         return json.loads(cache.read_text())
     seqs, page = [], 1
     while True:

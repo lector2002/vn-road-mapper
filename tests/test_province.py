@@ -192,3 +192,20 @@ def test_runs_of_leaves_out_sequences_a_refresh_dropped(tmp_path):
     assert [p.name for p in province.runs_of(tmp_path)] == ["mapillary-new", "mapillary-old"]
     province.write(tmp_path / "imagery.csv", ["source", "sequence"], [{"source": "mapillary", "sequence": "new"}])
     assert [p.name for p in province.runs_of(tmp_path)] == ["mapillary-new"]
+
+
+def test_kartaview_sequences_lists_again_when_cache_is_old(tmp_path, monkeypatch):
+    import os
+    cache = tmp_path / "kv.json"
+    cache.write_text(json.dumps([{"id": 1}]))
+    pages = []
+
+    def get(url):
+        pages.append(url)
+        return json.dumps({"result": {"data": [{"id": 2}], "hasMoreData": False}}).encode()
+
+    monkeypatch.setattr(province.kartaview, "get", get)
+    assert province.kartaview_sequences(cache) == [{"id": 1}] and not pages
+    old = cache.stat().st_mtime - 8 * 86400
+    os.utime(cache, (old, old))
+    assert [s["id"] for s in province.kartaview_sequences(cache)] == [2] and len(pages) == 1
