@@ -19,7 +19,7 @@ Before anything is edited I'd like your opinion on a small pilot:
 - **Stop rule:** if mappers reject more than 10% of the proposals, the pilot stops and the model is fixed before anything else is proposed.
 - **Wiki page:** <WIKI PAGE>
 
-**How good is it?** A ride is split into photos, each photo is matched to an OSM way, and a way gets a tag only when at least 5 photos voted and at least 70% agreed. On a test set of 4 public Vietnamese rides it calls 119 of 129 clear photos correctly; the most common mistake is an unpaved road called paved (8 of 36), while paved roads are almost never called unpaved (2 of 93). The project made those labels and I checked a blind sample of 50 photos (I agreed on 37 of 38). None of the test rides is in the Mekong delta (they are in Ninh Bình, Hà Tĩnh and Gia Lai), so the pilot is the real test for the Mekong delta. The method and numbers are [here](https://github.com/lector2002/vn-road-mapper/blob/main/docs/roadmap.md).
+**How good is it?** A ride is split into photos, each photo is matched to an OSM way, and a way gets a tag only when at least 5 photos voted and at least 70% agreed. On a test set of 4 public Vietnamese rides it calls 118 of 127 clear photos correctly; the most common mistake is an unpaved road called paved (7 of 35), while paved roads are almost never called unpaved (2 of 92). The project made those labels and I checked a blind sample of 50 photos (I agreed on 37 of 38). None of the test rides is in the Mekong delta (they are in Ninh Bình, Hà Tĩnh and Gia Lai), so the pilot is the real test for the Mekong delta. The method and numbers are [here](https://github.com/lector2002/vn-road-mapper/blob/main/docs/roadmap.md).
 
 Questions I'd especially like answered:
 

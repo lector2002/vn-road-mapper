@@ -55,5 +55,5 @@ The retrain does not reproduce the shipped probe exactly: with feature caches bu
 
 ## Next
 
-- **Owner:** the Hà Tĩnh park frames (725845 00000–00057) could be relabelled `unclear` (not the road), since they are what makes that ride count as dirt called paved. The spot check answers are the owner's, so they are left as they are here.
+- **Owner:** the Hà Tĩnh park frames (725845 00000–00057) could be relabelled `unclear` (not the road), since they are what makes that ride count as dirt called paved. The spot check answers are the owner's, so they are left as they are here. *Done 2026-11-22: the owner marked them unclear; the test split is now 118 of 127, 7 of 35 dirt called paved, 4 of 4 rides ([spot check](2026-11-21-vn-test-owner-spot-check.md)).*
 - Grassy dirt that a camera faces along is still worth catching, but needs test photos of it first; the Mekong set's unpaved photos are sand and gravel fill, not grassy tracks.
