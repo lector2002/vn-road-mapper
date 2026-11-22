@@ -101,7 +101,7 @@ def run(frames_dir, out_dir, overlays=5, model_id=DEFAULT_MODEL, probe=None, seg
         class_map = segmenter.class_map(image)
         summary = summarize(class_map)
         if probe:
-            summary = probe.check(summary, image)
+            summary = probe.check(summary, image, class_map)
         rows.append({"filename": path.name, **summary})
         if i in keep:
             overlay(image, class_map, summary).save(out_dir / "overlays" / path.name, quality=85)

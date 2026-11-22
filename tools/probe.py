@@ -124,7 +124,7 @@ def train_main(args):
     calibrated = any(r["calibrate"] and r["surface_by_eye"] == "paved" for r in grass)
     grass_threshold = pick_threshold(grass, p_grass, args.max_paved_error, GRASS_LABELS) if args.grass and calibrated else 1.0
     probe = fit([r["feats"] for r in train], y, args.c)
-    probe.threshold, probe.grass_threshold = threshold, grass_threshold
+    probe.threshold, probe.grass_threshold, probe.road_check = threshold, grass_threshold, True
     probe.info = {"clip_model": CLIP_MODEL, "rides": sorted({r["ride"] for r in train}),
                   "frames": len(train), "unpaved": int(y.sum()), "c": args.c, "max_paved_error": args.max_paved_error,
                   "grass_frames": len(grass), "grass_unpaved": int(target(grass).sum()) if grass else 0}
