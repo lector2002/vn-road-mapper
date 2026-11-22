@@ -32,6 +32,9 @@ def frame_name(row):
 
 def credit(row):
     name = source(row)
+    if name == "panoramax":
+        by = f" by {row['creator']}" if row.get("creator") else ""
+        return f"Panoramax image {row['photo']}{by}, sequence {sequence(row)}, {row.get('license') or 'license on its Panoramax page'}"
     if name in BY_ID:
         return f"{NAMES[name]} image {row['photo']}, sequence {sequence(row)}, CC BY-SA 4.0"
     return f"KartaView sequence {row['kartaview_sequence']}, photo {row['photo']}, CC BY-SA 4.0"

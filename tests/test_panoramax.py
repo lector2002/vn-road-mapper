@@ -46,7 +46,8 @@ def test_rows_with_a_panoramax_sequence_are_panoramax():
     row = pmx("uuid-1")
     assert sources.source(row) == "panoramax" and sources.sequence(row) == "col"
     assert sources.key(row) == ("panoramax", "uuid-1") and sources.frame_name(row) == "pmx_uuid-1.jpg"
-    assert "Panoramax" in sources.credit(row)
+    assert "Panoramax" in sources.credit(row) and "license on its Panoramax page" in sources.credit(row)
+    assert sources.credit({**row, "creator": "Dodko", "license": "CC BY-SA 4.0"}).endswith("by Dodko, sequence col, CC BY-SA 4.0")
     assert sources.key_columns([row]) == ["panoramax_sequence", "photo"]
 
 

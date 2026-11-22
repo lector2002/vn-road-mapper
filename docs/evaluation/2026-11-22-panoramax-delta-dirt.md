@@ -4,7 +4,7 @@ All 36 unpaved photos in the Mapillary Mekong set (`2026-11-22-mekong-dirt.md`) 
 
 - `data/2026-11-22-panoramax-delta-dirt-sequences.csv`: 14 Panoramax sequences (collections), all from one ride by user `Dodko` on 2025-02-15, split `test`.
 - `data/2026-11-22-panoramax-delta-dirt-candidates.csv`: 189 photos; `photo` is the Panoramax item id.
-- `data/2026-11-22-panoramax-delta-dirt-labels.csv`: the same 189 photos labelled: 128 paved, 35 unpaved, 1 mud, 25 unclear.
+- `data/2026-11-22-panoramax-delta-dirt-labels.csv`: the same 189 photos labelled, with photographer and license for the credit line: 128 paved, 35 unpaved, 1 mud, 25 unclear.
 
 **Trust status: not yet trusted.** The labels count only after the owner's blind spot check reaches 90% (see below).
 
