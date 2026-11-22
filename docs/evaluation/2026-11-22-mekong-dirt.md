@@ -5,8 +5,9 @@ No test ride covered unpaved roads in the Mekong delta: the KartaView set has 10
 - `data/2026-11-22-mekong-dirt-sequences.csv`: 18 sequences, with province, camera, date, Mapillary user and split (all `test`).
 - `data/2026-11-22-mekong-dirt-candidates.csv`: 190 photos, `photo` is the Mapillary image id.
 - `data/2026-11-22-mekong-dirt-labels.csv`: 143 labelled photos: 88 paved, 36 unpaved, 19 unclear.
+- `data/2026-11-22-mekong-dirt-owner-spot-check.csv`: the owner's blind labels for 50 of them.
 
-**Trust status: not trusted yet.** The labels count as test data only once the owner's blind spot check (below) agrees on at least 90% of the photos both call clear.
+**Trust status: trusted test data.** The owner's blind spot check agrees on 40 of the 43 photos both call clear (93%, the bar is 90%). His answers win where they overlap (`tools.benchmark --prefer`).
 
 ## How the photos were picked
 
@@ -52,10 +53,22 @@ The headline number hides two failures:
 
 So the model rarely calls a paved delta road dirt, but on this set it gives no answer for most concrete lanes and misses or skips half the dirt. Grassy dirt called vegetation is the same failure seen in Hà Tĩnh (`2026-11-21-vn-test-owner-spot-check.md`).
 
-## Owner spot check (pending)
+## Owner spot check
 
-50 of the 143 photos, spread over the labels: `python -m tools.labelpage docs/evaluation/data/2026-11-22-mekong-dirt-labels.csv --sample 50 --title "Mekong dirt test: blind spot check" --out mekong-spot-check.html`. Label them blind, save the CSV the page gives back as `data/2026-11-22-mekong-dirt-owner-spot-check.csv` and run:
+50 of the 143 photos, spread over the labels, were put on a blind page: `python -m tools.labelpage docs/evaluation/data/2026-11-22-mekong-dirt-labels.csv --sample 50 --title "Mekong dirt test: blind spot check" --out mekong-spot-check.html`. Agreement: `python -m tools.agreement docs/evaluation/data/2026-11-22-mekong-dirt-labels.csv docs/evaluation/data/2026-11-22-mekong-dirt-owner-spot-check.csv`.
 
-`python -m tools.agreement docs/evaluation/data/2026-11-22-mekong-dirt-labels.csv docs/evaluation/data/2026-11-22-mekong-dirt-owner-spot-check.csv`
+- 50 checked, 43 clear to both: **40 agree (93%), so the labels pass**.
+- 7 were unclear to one side. The owner called 4 Đức Hòa dirt frames `mud`, which counts as unpaved.
+- All 3 disagreements were paved in the labels and unpaved for the owner. Two are broken asphalt in Đức Hòa (`aS5pH0NdJs4v3wfAO6qLID` 682333564496261 and 1334347720976341), worn down to gravel with puddles. The third is a Cà Mau concrete lane (`zbGrLmHk6Mq5CPQOuYjx43` 883940156455271) whose slab joints are faint at 1024 px.
 
-At 90% or more the labels become test data, with the owner's answers winning where they overlap (`tools.benchmark --prefer`). Below 90% the set is relabelled before use.
+Scores with the owner's answers winning (`--prefer docs/evaluation/data/2026-11-22-mekong-dirt-owner-spot-check.csv`). After the swap, 85 frames are paved by eye, 41 unpaved and 4 mud; the benchmark counts the mud frames separately.
+
+| | SegFormer alone | With the dirt probe |
+|---|---|---|
+| Clear frames that vote | 55 of 126 | 55 of 126 |
+| Voting frames right | 40 of 55 | 42 of 55 |
+| Unpaved called paved | 13 of 41 | 11 of 41 |
+| Paved called unpaved | 2 of 85 | 2 of 85 |
+| Rides right (eye majority) | 9 of 18 | 9 of 18 |
+
+Unpaved called paved goes up from 6 to 11 because the photos the owner moved to unpaved (broken asphalt and a lane he read as earth) are ones the model calls paved. The two failures above still hold: concrete lanes come out `vegetation` (54 of 85 paved frames), and the model misses about a third of delta dirt.
