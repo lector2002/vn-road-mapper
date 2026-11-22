@@ -37,7 +37,7 @@ Pass 1 labelled all 189 photos from the road ahead (rows 48–80%, columns 22–
 
 ## How the current model scores
 
-`python -m tools.benchmark docs/evaluation/data/2026-11-22-panoramax-delta-dirt-labels.csv --out output/panoramax-delta` (add `--no-probe` for SegFormer alone). Each collection counts as one way. These are scores against labels the owner has not checked yet.
+`python -m tools.benchmark docs/evaluation/data/2026-11-22-panoramax-delta-dirt-labels.csv --out output/panoramax-delta` (add `--no-probe` for SegFormer alone). Each collection counts as one way. These are scores against the label file before the owner check; `--prefer docs/evaluation/data/2026-11-22-panoramax-delta-dirt-owner-spot-check.csv` applies his answers, which changes one unpaved frame to paved.
 
 | | SegFormer alone | With the dirt probe |
 |---|---|---|
