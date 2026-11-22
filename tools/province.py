@@ -335,7 +335,9 @@ def match(out, url, log=print):
     matched = failed = 0
     for folder in runs_of(out):
         rows = sorted(present(folder), key=lambda r: r["timestamp"])
-        if len(rows) < 2 or ((folder / "matches.csv").exists() and len(read(folder / "matches.csv")) == len(rows)):
+        names = {r["filename"] for r in rows}
+        if len(rows) < 2 or ((folder / "matches.csv").exists()
+                             and {m["filename"] for m in read(folder / "matches.csv")} == names):
             continue
         empty = dict.fromkeys(mm.CSV_FIELDS[1:], "")
         result = []
@@ -349,7 +351,7 @@ def match(out, url, log=print):
             try:
                 result += mm.run(folder / "piece.csv", folder / "piece", url, costing="motor_scooter")[1]
                 matched += 1
-            except (ValueError, OSError) as e:
+            except ValueError as e:  # Valhalla answered but could not match; an OSError (server down) stops the step
                 if len(piece) >= 4:  # one bad stretch should not lose the rest: retry each half
                     half = len(piece) // 2
                     todo[:0] = [piece[:half], piece[half:]]

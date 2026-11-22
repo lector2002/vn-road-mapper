@@ -87,6 +87,29 @@ def test_match_uses_present_frames_and_skips_done_runs(tmp_path, monkeypatch):
     province.match(tmp_path, "http://localhost:8002", log=lambda *a: None)
     province.match(tmp_path, "http://localhost:8002", log=lambda *a: None)
     assert calls == [(2, "http://localhost:8002", "motor_scooter")]
+    (run / "frames" / "1.jpg").unlink()
+    (run / "frames" / "2.jpg").write_bytes(b"x")
+    province.match(tmp_path, "http://localhost:8002", log=lambda *a: None)
+    assert len(calls) == 2 and {m["filename"] for m in province.read(run / "matches.csv")} == {"0.jpg", "2.jpg"}
+
+
+def test_match_stops_without_caching_when_valhalla_is_down(tmp_path, monkeypatch):
+    run = tmp_path / "runs" / "mapillary-s1"
+    (run / "frames").mkdir(parents=True)
+    province.write(run / "frames.csv", ["filename", "timestamp", "lat", "lon", "heading"],
+                   [{"filename": f"{i}.jpg", "timestamp": "2025-01-01T00:00:0%dZ" % i, "lat": 18, "lon": 105, "heading": ""}
+                    for i in range(4)])
+    for i in range(4):
+        (run / "frames" / f"{i}.jpg").write_bytes(b"x")
+
+    def down(*a, **k):
+        raise ConnectionRefusedError("connection refused")
+
+    from pipeline.mapmatch import match as mm
+    monkeypatch.setattr(mm, "run", down)
+    with pytest.raises(OSError):
+        province.match(tmp_path, "http://localhost:8002", log=lambda *a: None)
+    assert not (run / "matches.csv").exists()
 
 
 def test_timed_appends_step_seconds(tmp_path, capsys):
