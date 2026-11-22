@@ -96,7 +96,7 @@ def load_ems(out, polygons=True):
             key = (code, aoi["number"])
             dirs = sorted(glob.glob(str(Path(out) / "ems" / f"{code}_AOI{aoi['number']:02d}_DEL_*")))
             dirs = [d for d in dirs if Path(d).is_dir()]
-            if not dirs:
+            if polygons and not dirs:
                 continue
             area = {"event": code, "aoi": f"{aoi['number']:02d} {aoi['name']}", "date": date, "split": split,
                     "bounds": shape({"type": "Polygon", "coordinates": [[[float(v) for v in xy.split()]
