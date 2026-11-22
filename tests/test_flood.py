@@ -131,7 +131,7 @@ def test_along_m_is_the_way_length():
 
 def test_gfd_counts_events_and_leaves_out_permanent_water(tmp_path):
     import zipfile
-    import rasterio
+    rasterio = pytest.importorskip("rasterio")
     from rasterio.transform import from_origin
     from tools.floodcheck import gfd_counts, gfd_maps
     (tmp_path / "gfd").mkdir()
