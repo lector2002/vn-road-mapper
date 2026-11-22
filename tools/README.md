@@ -104,3 +104,20 @@ python -m tools.widthcheck score output/width/photos.csv output/width/widths.csv
 - `ways` keeps minor roads (`residential`, `service`, `track`, `unclassified`, `tertiary`, `living_street`, `road`, `path`) whose `width` or `est_width` is a plain number from 0.5 to 20 m, and every highway around them.
 - `photos` keeps non-panoramic photos taken on the way itself: within 5 m of it, at least 15 m from either end (short alleys meet a bigger road there and the photo shows that road), looking along it (within 20°), and with no other highway within 3 m of being as close. At most 12 photos per way and 3 per sequence. Each way is in `dev` or `test` by a hash of its id.
 - `score` gives each way the class of its median frame width and prints the confusion table per split, next to calling every road `two_cars`.
+
+## floodcheck.py
+
+Builds the flood-risk layer for OSM roads in the Copernicus EMS flood areas in Vietnam and scores it against what EMS mapped flooded. It is how Phase 5 was scored (`docs/evaluation/2026-11-22-phase5-flood-risk.md`).
+
+```bash
+pip install -r requirements-flood.txt
+python -m tools.floodcheck fetch output/flood                          # EMS, UNOSAT, Global Surface Water, Copernicus DEM
+python -m tools.floodcheck ways vietnam-latest.osm.pbf output/flood    # Geofabrik extract
+python -m tools.floodcheck build output/flood
+python -m tools.floodcheck score output/flood/flood_ways.csv
+python -m pipeline.export.export output/ride1/ways.csv --out output/ride1 --flood output/flood/flood_risk.csv
+```
+
+- `build` writes `flood_ways.csv`: per road and EMS area, the layer values from `pipeline/flood/risk.py` and whether EMS mapped 2 or more of its 25 m points under water. The history layer only uses UNOSAT and EMS maps from before that flood.
+- `score` fits the thresholds on the dev floods (EMSR754, EMSR844), prints each risk class's flooded share for dev and test (EMSR848) and per area, and writes `flood_risk.csv` (`way_id`, `flood_risk`).
+- `flood_risk` goes into `proposals.csv` for reviewers and health stations. It is never written to OSM.
