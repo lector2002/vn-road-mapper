@@ -149,6 +149,9 @@ class FakeRoadEmbedder:
         self.crops.append(image.size)
         return self.p
 
+    def __call__(self, images):
+        return np.ones((len(images), 1))
+
 
 def lane_map(pixel_class="paved", width=40, height=100):
     from pipeline.segmentation.segment import CLASSES
@@ -204,3 +207,12 @@ def test_road_check_round_trips_and_defaults_to_off(tmp_path):
 def test_real_clip_gives_a_zero_shot_unpaved_probability():
     p = probe.Embedder().p_unpaved(Image.new("RGB", (64, 64), (128, 120, 110)))
     assert 0 <= p <= 1
+
+
+def test_frames_the_road_check_leaves_alone_still_get_the_dirt_probe():
+    embedder = FakeRoadEmbedder(0.8)
+    p = probe.Probe(mean=[0], scale=[1], coef=[10], intercept=0, embedder=embedder, road_check=True, grass_threshold=0.9)
+    image = Image.new("RGB", (40, 100))
+    assert p.check({"label": "vegetation", "confidence": 0.9}, image, lane_map())["label"] == "dirt"
+    assert p.check({"label": "paved", "confidence": 0.4}, image, lane_map())["label"] == "dirt"
+    assert len(embedder.crops) == 2

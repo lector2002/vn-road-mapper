@@ -157,8 +157,9 @@ class Probe:
             found = road_box(class_map)
             if found:
                 box, pixel_label = found
-                return self.check_road(summary, pixel_label, self.get_embedder().p_unpaved(image.crop(box)))
-            return summary
+                checked = self.check_road(summary, pixel_label, self.get_embedder().p_unpaved(image.crop(box)))
+                if checked is not summary:
+                    return checked
         if not self.checks(summary["label"]):
             return summary
         return self.relabel(summary, self.get_embedder()([image])[0])

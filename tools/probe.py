@@ -131,7 +131,7 @@ def train_main(args):
     print(f"trained on {len(train)} frames ({int(y.sum())} unpaved) from {len(probe.info['rides'])} rides, "
           f"threshold {threshold}, grass threshold {grass_threshold} ({len(grass)} grass frames)")
     test = frames(args.test[0], load_cache(args.test[1]), args.test[2])
-    print("\nSegFormer:\n" + report(score(test)) + "\n\nWith the dirt probe:\n" + report(score(relabel(probe, test))))
+    print("\nSegFormer:\n" + report(score(test)) + "\n\nWith the dirt probe (the road check needs class maps; score it with tools.benchmark):\n" + report(score(relabel(probe, test))))
     for cache in args.check:
         rows = [{"label": lab, "feats": f} for f, lab, _ in load_cache(cache).values()]
         after = relabel(probe, rows)
