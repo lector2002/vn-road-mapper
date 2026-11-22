@@ -99,6 +99,6 @@ The two `change` proposals call roads tagged `asphalt` unpaved; like every propo
 
 ## Caveats
 
-- Surface calls carry the Phase 2 accuracy (119 of 129 clear test frames, 8 of 36 dirt called paved), measured on a test split a person spot-checked; nobody has checked the Hà Tĩnh calls.
+- Surface calls carry the Phase 2 accuracy (118 of 127 clear test frames, 7 of 35 dirt called paved), measured on a test split a person spot-checked; nobody has checked the Hà Tĩnh calls.
 - Width stays blank on public imagery (Phase 4), and flood risk is mapped satellite water, not passability (Phase 5).
 - Coverage is where public imagery exists. Rural lanes stay thin until a partner offers footage, as the roadmap expected.

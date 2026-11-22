@@ -16,6 +16,17 @@ The owner's answers replace the labels where they overlap (`tools.benchmark --pr
 
 `python -m tools.benchmark docs/evaluation/data/2026-11-21-vn-labels.csv --split test --prefer docs/evaluation/data/2026-11-21-vn-test-owner-spot-check.csv --out output/vn-test` (add `--no-probe` for SegFormer alone). Each ride counts as one way.
 
+With the Hà Tĩnh park frames marked unclear (2026-11-22, below):
+
+| | SegFormer alone | With the dirt probe |
+|---|---|---|
+| Clear frames right | 108 of 127 (85%) | 118 of 127 (93%) |
+| Unpaved called paved | 18 of 35 | 7 of 35 |
+| Paved called unpaved | 1 of 92 | 2 of 92 |
+| Rides right | 3 of 4 | 4 of 4 |
+
+Before that relabel, and the Phase 2 figure from the labels alone:
+
 | | SegFormer alone | With the dirt probe | Phase 2 figure (labels only) |
 |---|---|---|---|
 | Clear frames right | 109 of 129 (84%) | 119 of 129 (92%) | 120 of 128 |
@@ -23,7 +34,11 @@ The owner's answers replace the labels where they overlap (`tools.benchmark --pr
 | Paved called unpaved | 1 of 93 | 2 of 93 | 2 of 94 |
 | Rides right | 2 of 4 | 3 of 4 | 4 of 4 |
 
-Hà Tĩnh 725845 now has an unpaved majority by eye (11 unpaved, 7 paved), and the model calls it paved. Of the 11 owner-unpaved frames, 10 come out `vegetation` or `other` (SegFormer sees the grass, not the track) and do not vote; the one that votes is called paved with 0.95 confidence and the probe keeps it. Only its 6 paved frames vote. The probe only rechecks frames called paved, so grassy dirt tracks called vegetation are a second dirt failure it cannot fix.
+Before the relabel, Hà Tĩnh 725845 had an unpaved majority by eye (11 unpaved, 7 paved), and the model calls it paved. Of the 11 owner-unpaved frames, 10 come out `vegetation` or `other` (SegFormer sees the grass, not the track) and do not vote; the one that votes is called paved with 0.95 confidence and the probe keeps it. Only its 6 paved frames vote. The probe only rechecks frames called paved, so grassy dirt tracks called vegetation are a second dirt failure it cannot fix.
+
+## Hà Tĩnh park frames marked unclear (2026-11-22)
+
+725845 frames 00000–00057 face sideways onto a lakeside park (lawns, brick paving, a balustrade over water), not the road; the street, paved, shows from about 00059 ([grassy-dirt write-up](2026-11-22-grassy-dirt-recheck.md)). The owner asked to mark them unclear, so his 12 answers there (11 unpaved, 1 paved) and the labels' 2 paved calls (00049, 00051) are now `unclear`. Agreement is unchanged (37 of 38: none of them was clear to both). Two voting frames leave the scoring (1 unpaved called paved, 1 paved), and the ride now has a paved majority by eye, matching the model.
 
 ## Limits
 
