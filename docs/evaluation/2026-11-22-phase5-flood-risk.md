@@ -84,7 +84,7 @@ The layer works best where 2020 UNOSAT maps already covered the same river plain
 - **Elevation is a surface model.** Raised roads, the main reason for the height layer, are often narrower than a 30 m pixel, so the layer sees the paddy beside them. That is likely why height against surroundings adds little.
 - **Water depth is unknown.** "Flooded" means any visible water on 25–50 m of the road, whether 5 cm or 2 m.
 - **Layer 3, water seen in dated photos, is not in.** Phase 1 has no water labels yet.
-- **Not used:** the Global Flood Database (2000–2018 MODIS, 250 m, about 17.5 GB) would add history in the Mekong delta and the north, where dev was weakest. It is the next layer to add.
+- **Not used:** the Global Flood Database (2000–2018 MODIS, 250 m, about 17.5 GB) would add history in the Mekong delta and the north, where dev was weakest. It is added in [the follow-up](2026-11-22-gfd-north.md).
 
 ## Reproduce
 

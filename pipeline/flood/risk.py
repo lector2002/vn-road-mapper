@@ -1,4 +1,4 @@
-"""Flood risk of OSM ways from public layers: past flood maps, surface water and elevation.
+"""Flood risk of OSM ways from public layers: past flood maps, surface water, elevation and the Global Flood Database.
 
 Every layer is a north-up grid (array, transform) in WGS84; `transform` is a rasterio `Affine` or anything
 with its `a`, `c`, `e`, `f` (pixel width, west edge, pixel height (negative), north edge).
@@ -12,7 +12,7 @@ ROADS = {"trunk", "primary", "secondary", "tertiary", "unclassified", "residenti
          "road", "path", "trunk_link", "primary_link", "secondary_link", "tertiary_link"}
 RISKS = ("high", "medium", "low")
 SAMPLE_M = 25
-FEATURES = ["samples", "history", "water", "z_min", "rel_min"]
+FEATURES = ["samples", "history", "water", "z_min", "rel_min", "gfd", "gfd_events"]
 Grid = namedtuple("Grid", "array transform nodata")
 
 
@@ -57,11 +57,16 @@ def relative_height(dem, radius_px):
     return (z - total / count).astype(np.float32)
 
 
-def way_features(coords, history=None, water=None, dem=None, rel=None):
+def way_features(coords, history=None, water=None, dem=None, rel=None, gfd=None):
     """Per-way layer values: share of points in a past flood, highest surface-water occurrence (%),
-    lowest elevation (m) and lowest height above its surroundings (m). Blank where a layer is missing."""
+    lowest elevation (m), lowest height above its surroundings (m), and from the Global Flood Database
+    (`gfd`, a grid counting the events that flooded each pixel) the share of points flooded in any event and
+    the most events at one point. Blank where a layer is missing."""
     pts = samples(coords)
     out = {"samples": len(pts)}
+    counts = at(gfd, pts) if gfd is not None else None
+    out["gfd"] = round(float(np.mean(np.nan_to_num(counts) > 0)), 3) if counts is not None else ""
+    out["gfd_events"] = int(np.nanmax(np.nan_to_num(counts))) if counts is not None else ""
     for name, grid, reduce in (("history", history, np.nanmean), ("water", water, np.nanmax),
                                ("z_min", dem, np.nanmin), ("rel_min", rel, np.nanmin)):
         values = at(grid, pts) if grid is not None else np.array([np.nan])
@@ -75,6 +80,7 @@ def risk(features, rules):
     """`high`, `medium` or `low` from the way's features, or blank when the layers do not cover it.
 
     rules: {"history": share of points flooded before that makes a way high,
+            "gfd": share of points in a Global Flood Database event that makes a way high (absent: unused),
             "rel": height above surroundings (m) at or under which a low-lying way is high,
             "z": elevation (m) at or under which a way counts as low-lying,
             "water": surface-water occurrence (%) at or over which a way is at least medium}
@@ -83,6 +89,8 @@ def risk(features, rules):
     if f["z_min"] == "" or f["rel_min"] == "":
         return ""
     if f["history"] != "" and f["history"] >= rules["history"]:
+        return "high"
+    if "gfd" in rules and f.get("gfd", "") != "" and f["gfd"] >= rules["gfd"]:
         return "high"
     low_lying = f["z_min"] <= rules["z"]
     if low_lying and f["rel_min"] <= rules["rel"]:

@@ -39,7 +39,8 @@ CELL_M = 50
 MAX_GAP_M = 1000
 KV_MAX_AGE_DAYS = 7
 IMAGERY_FIELDS = ["source", "sequence", "photo_id", "sequence_index", "lat", "lon", "captured_at", "heading", "url"]
-FLOOD_FIELDS = ["way_id", "highway", "surface", "length_m", "history", "water", "z_min", "rel_min", "flood_risk"]
+FLOOD_FIELDS = ["way_id", "highway", "surface", "length_m", "history", "water", "z_min", "rel_min", "gfd", "gfd_events",
+                "flood_risk"]
 
 
 def read(path):
@@ -409,11 +410,12 @@ def flood(out, flood_dir, rules=None, log=print):
     z = np.where(dem.array == dem.nodata, np.nan, dem.array) if dem.nodata is not None else dem.array.astype(float)
     rel = Grid(relative_height(z, round(fc.REL_RADIUS_M / (abs(dem.transform.a) * 111_320))), dem.transform, None)
     water = fc.mosaic(sorted(glob.glob(str(flood_dir / "gsw" / "occurrence_*.tif"))), pad)
+    events = fc.gfd_counts([m for m in fc.gfd_maps(flood_dir) if fc.overlaps(m[2], pad)], pad)
     rows = []
     for way in Ways(out / "valhalla" / "province.osm.pbf").ways.values():
         if way["tags"].get("highway") not in ROADS or len(way["coords"]) < 2:
             continue
-        f = way_features(way["coords"], history, water, dem, rel)
+        f = way_features(way["coords"], history, water, dem, rel, events)
         rows.append({"way_id": way["id"], "highway": way["tags"]["highway"], "surface": way["tags"].get("surface", ""),
                      "length_m": round(float(along_m(way["coords"])[-1])), **f, "flood_risk": risk(f, rules)})
     write(out / "flood_risk.csv", FLOOD_FIELDS, rows)
