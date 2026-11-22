@@ -21,7 +21,7 @@ from pathlib import Path
 
 import numpy as np
 
-from pipeline.flood.risk import FEATURES, RISKS, ROADS, Grid, at, auc, relative_height, risk, samples, way_features
+from pipeline.flood.risk import FEATURES, RISKS, ROADS, Grid, along_m, at, auc, relative_height, risk, samples, way_features
 
 EMS_API = "https://rapidmapping.emergency.copernicus.eu/backend/dashboard-api/public-activations/?code="
 HDX_API = "https://data.humdata.org/api/3/action/package_search?fq=organization:unosat&rows=200&q=viet%20nam%20water"
@@ -190,7 +190,7 @@ def build(out, log=print):
             f = way_features(x["coords"], history, water, dem, rel)
             wet = at(truth, pts) > 0
             rows.append({"event": area["event"], "aoi": area["aoi"], "split": area["split"], "way_id": x["way_id"],
-                         "highway": x["highway"], "length_m": round((len(pts) - 1) * 25), **f,
+                         "highway": x["highway"], "length_m": round(float(along_m(x["coords"])[-1])), **f,
                          "flooded_share": round(float(wet.mean()), 3), "flooded": int(wet.sum() >= FLOODED_SAMPLES)})
             kept += 1
         log(f"{area['event']} {area['aoi']}: {kept} roads, {sum(r['flooded'] for r in rows[-kept:]) if kept else 0} flooded,"

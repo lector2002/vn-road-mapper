@@ -3,7 +3,7 @@ from collections import namedtuple
 import numpy as np
 import pytest
 
-from pipeline.flood.risk import Grid, at, auc, relative_height, risk, samples, way_features
+from pipeline.flood.risk import Grid, along_m, at, auc, relative_height, risk, samples, way_features
 
 T = namedtuple("T", "a c e f")
 RULES = {"history": 0.2, "rel": -1.0, "z": 5.0, "water": 50}
@@ -108,3 +108,8 @@ def test_samples_do_not_bunch_at_the_end():
 def test_short_roads_get_a_middle_point():
     m = 1 / (111_320 * np.cos(np.radians(10)))
     assert len(samples([(10.0, 105.0), (10.0, 105.0 + 35 * m)])) == 3
+
+
+def test_along_m_is_the_way_length():
+    m = 1 / (111_320 * np.cos(np.radians(10)))
+    assert along_m([(10.0, 105.0), (10.0, 105.0 + 26 * m)])[-1] == pytest.approx(26, abs=0.1)

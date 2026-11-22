@@ -16,12 +16,18 @@ FEATURES = ["samples", "history", "water", "z_min", "rel_min"]
 Grid = namedtuple("Grid", "array transform nodata")
 
 
-def samples(coords, step_m=SAMPLE_M):
-    """Evenly spaced points at most `step_m` apart along a way of (lat, lon) vertices, both ends included, however dense its vertices."""
+def along_m(coords):
+    """Distance in metres from the first vertex to each (lat, lon) vertex."""
     c = np.asarray(coords, dtype=float)
     k = np.cos(np.radians((c[1:, 0] + c[:-1, 0]) / 2))
     seg = np.hypot(np.diff(c[:, 0]) * 111_320, np.diff(c[:, 1]) * 111_320 * k)
-    along = np.concatenate([[0], np.cumsum(seg)])
+    return np.concatenate([[0], np.cumsum(seg)])
+
+
+def samples(coords, step_m=SAMPLE_M):
+    """Evenly spaced points at most `step_m` apart along a way of (lat, lon) vertices, both ends included, however dense its vertices."""
+    c = np.asarray(coords, dtype=float)
+    along = along_m(c)
     at_m = np.linspace(0, along[-1], int(np.ceil(along[-1] / step_m)) + 1) if along[-1] > 0 else np.array([0.0])
     return np.column_stack([np.interp(at_m, along, c[:, 0]), np.interp(at_m, along, c[:, 1])])
 
