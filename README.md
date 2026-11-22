@@ -73,7 +73,7 @@ Public imagery first; nothing depends on hiring riders or labellers. Details and
 - [x] **Phase 2:** fix dirt roads called paved: a CLIP probe on the road crop; test split 110 → 120 of 128, dirt called paved 17 → 6 of 34 ([write-up](docs/evaluation/2026-11-21-phase2-dirt-probe.md)). The owner's test spot check passed (37 of 38); with his answers the test split is 119 of 129, 8 of 36 dirt called paved, 3 of 4 rides ([spot check](docs/evaluation/2026-11-21-vn-test-owner-spot-check.md))
 - [ ] **Phase 3:** OSM Vietnam community review, then a small human-reviewed pilot. The kit is ready for the owner to send ([docs/pilot](docs/pilot/README.md)): announcement, wiki page, MapRoulette challenge and 57 proposals in Ô Môn, Cần Thơ
 - [ ] **Phase 4:** width as classes (motorbike only / one car / two cars)
-- [ ] **Phase 5:** flood-risk layer from satellite flood maps and elevation. Scored on the October 2025 central Vietnam flood: 36% of `high` roads flooded against 13% of all ([evaluation](docs/evaluation/2026-11-22-phase5-flood-risk.md))
+- [ ] **Phase 5:** flood-risk layer from satellite flood maps and elevation. Scored on the October 2025 central Vietnam flood: 35% of `high` roads flooded against 12% of all ([evaluation](docs/evaluation/2026-11-22-phase5-flood-risk.md))
 - [ ] **Phase 6:** one province, self-hosted Valhalla, PostGIS
 
 ## Where the data comes from
