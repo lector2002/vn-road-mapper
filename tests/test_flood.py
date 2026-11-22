@@ -103,3 +103,8 @@ def test_samples_do_not_bunch_at_the_end():
     pts = samples([(10.0, 105.0), (10.0, 105.0 + 101 * m)])
     assert len(pts) == 5
     assert np.diff(pts[:, 1]).min() > 20 * m
+
+
+def test_short_roads_get_a_middle_point():
+    m = 1 / (111_320 * np.cos(np.radians(10)))
+    assert len(samples([(10.0, 105.0), (10.0, 105.0 + 35 * m)])) == 3
