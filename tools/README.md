@@ -130,7 +130,7 @@ Runs the whole pipeline over one province from public imagery: every Mapillary a
 pip install -r requirements-province.txt
 P=output/province/ha-tinh
 python -m tools.province boundary $P --name "Tỉnh Hà Tĩnh" --pbf vietnam-latest.osm.pbf   # Geofabrik extract
-docker run -d --name valhalla -p 8002:8002 -v $PWD/$P/valhalla:/custom_files \
+docker run -d --name valhalla -p 127.0.0.1:8002:8002 -v $PWD/$P/valhalla:/custom_files \
   -e build_admins=False -e build_elevation=False -e build_time_zones=False ghcr.io/valhalla/valhalla-scripted:latest
 python -m tools.province imagery $P      # Mapillary coverage tiles + KartaView sequences (the VN list is cached)
 python -m tools.province frames $P       # one run folder per sequence under $P/runs
@@ -138,7 +138,7 @@ python -m tools.province segment $P      # SegFormer + dirt probe, CPU
 python -m tools.province match $P        # self-hosted Valhalla, motor_scooter costing
 python -m tools.province flood $P --flood-dir output/flood   # after floodcheck fetch; DEM tiles for the province
 python -m tools.province fuse $P         # ways.csv, proposals.csv, changes.osc, review.html
-docker run -d --name postgis -e POSTGRES_PASSWORD=roads -e POSTGRES_DB=roads -p 5432:5432 postgis/postgis:16-3.4
+docker run -d --name postgis -e POSTGRES_PASSWORD=roads -e POSTGRES_DB=roads -p 127.0.0.1:5432:5432 postgis/postgis:16-3.4
 python -m tools.province db $P --dsn postgresql://postgres:roads@localhost:5432/roads
 ```
 
