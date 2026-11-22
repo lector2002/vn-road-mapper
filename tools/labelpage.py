@@ -1,4 +1,4 @@
-"""Build a self-contained page for labelling road surface on public KartaView and Mapillary photos, blind to any existing label.
+"""Build a self-contained page for labelling road surface on public KartaView, Mapillary and Panoramax photos, blind to any existing label.
 
 The page embeds the photos, draws the box the surface stage reads, saves paved / unpaved / mud / water / unclear in the
 browser and gives back a CSV in the hand-label format. Nothing is uploaded; send the CSV back by hand.
@@ -14,7 +14,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from tools import mapillary, sources
+from tools import mapillary, panoramax, sources
 from tools.benchmark import load_labels
 from tools.kartaview import get, list_photos, photo_url, upright
 
@@ -47,8 +47,10 @@ def embed(data, max_width=960, turn=True):
     return "data:image/jpeg;base64," + base64.b64encode(jpeg.getvalue()).decode()
 
 
-def items(rows, photos_of=list_photos, download=get, seed=1, link=False, mapillary_url=mapillary.photo_url):
-    """Mapillary links expire within days, so Mapillary photos are always embedded and never turned."""
+def items(rows, photos_of=list_photos, download=get, seed=1, link=False, mapillary_url=mapillary.photo_url,
+          panoramax_url=panoramax.photo_url):
+    """Mapillary links expire within days, so Mapillary (and Panoramax) photos are always embedded and never turned."""
+    by_id = {"mapillary": mapillary_url, "panoramax": panoramax_url}
     columns = sources.key_columns(rows)
     by_sequence = defaultdict(list)
     for row in rows:
@@ -57,9 +59,9 @@ def items(rows, photos_of=list_photos, download=get, seed=1, link=False, mapilla
     for (source, sequence), group in by_sequence.items():
         photos = {int(p["sequenceIndex"]): p for p in photos_of(sequence)} if source == "kartaview" else {}
         for row in group:
-            if source == "mapillary":
+            if source in by_id:
                 try:
-                    src = embed(download(mapillary_url(row["photo"])), turn=False)
+                    src = embed(download(by_id[source](row["photo"])), turn=False)
                 except (ValueError, KeyError, OSError):
                     missing.append(f"{sequence}/{row['photo']}")
                     continue
@@ -89,7 +91,7 @@ def render(page_id, title, page_items, columns=("kartaview_sequence", "photo")):
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("labels_csv", type=Path, nargs="+",
-                   help="CSVs with kartaview_sequence or mapillary_sequence, and photo (sequenceIndex or image id)")
+                   help="CSVs with kartaview_sequence, mapillary_sequence or panoramax_sequence, and photo (sequenceIndex or image id)")
     p.add_argument("--out", type=Path, required=True, help="HTML file to write; keep it out of the repo")
     p.add_argument("--sample", type=int, help="label only this many rows, spread over the existing labels")
     p.add_argument("--seed", type=int, default=1)

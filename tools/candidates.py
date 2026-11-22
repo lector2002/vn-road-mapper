@@ -1,18 +1,18 @@
-"""Pick evenly spaced photos from a list of public KartaView or Mapillary sequences, as the frames to label for a test set.
+"""Pick evenly spaced photos from a list of public KartaView, Mapillary or Panoramax sequences, as the frames to label for a test set.
 
 The sequence list says each sequence's region and split; the split is fixed per ride (same rider and day), so no
-ride has photos on both sides. Writes kartaview_sequence or mapillary_sequence and photo (KartaView sequenceIndex or
-Mapillary image id) plus where and when.
+ride has photos on both sides. Writes kartaview_sequence, mapillary_sequence or panoramax_sequence and photo (KartaView sequenceIndex,
+Mapillary image id or Panoramax item id) plus where and when.
 """
 import argparse
 import csv
 from pathlib import Path
 
-from tools import kartaview, mapillary, sources
+from tools import kartaview, mapillary, panoramax, sources
 from tools.benchmark import load_labels
 
 FIELDS = ["photo", "region", "split", "lat", "lon", "shot_date"]
-LISTERS = {"kartaview": kartaview.list_photos, "mapillary": mapillary.list_photos}
+LISTERS = {"kartaview": kartaview.list_photos, "mapillary": mapillary.list_photos, "panoramax": panoramax.list_photos}
 
 
 def spaced(photos, n):
@@ -44,7 +44,7 @@ def candidates(sequences, per_sequence, photos_of=None):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("sequences_csv", help="kartaview_sequence or mapillary_sequence, region, split per row")
+    p.add_argument("sequences_csv", help="kartaview_sequence, mapillary_sequence or panoramax_sequence, region, split per row")
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--per-sequence", type=int, default=45)
     args = p.parse_args(argv)

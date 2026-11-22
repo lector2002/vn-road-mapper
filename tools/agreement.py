@@ -51,7 +51,7 @@ def report(result, pass_share=0.9):
     if result["not_in_reference"]:
         lines.append(f"not in the reference file: {result['not_in_reference']}")
     for d in result["disagreements"]:
-        sequence = d.get("kartaview_sequence") or d.get("mapillary_sequence")
+        sequence = sources.sequence(d)
         lines.append(f"  {sequence}/{d['photo']}: reference {d['reference']}, check {d['check']}")
     return "\n".join(lines)
 
