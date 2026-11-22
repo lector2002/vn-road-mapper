@@ -89,3 +89,10 @@ def test_burn_marks_polygon_pixels():
     assert g.array.shape == (20, 20) and g.array.sum() == 100
     v = at(g, np.array([[10.0005, 105.0005], [10.0015, 105.0015]]))
     assert v.tolist() == [1, 0]
+
+
+def test_samples_ignore_dense_vertices():
+    m = 1 / (111_320 * np.cos(np.radians(10)))
+    dense = [(10.0, 105.0 + i * m) for i in range(10)] + [(10.0, 105.0 + 100 * m)]
+    assert len(samples(dense)) == 5
+    assert len(samples([(10.0, 105.0), (10.0, 105.0)])) == 1

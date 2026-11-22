@@ -17,13 +17,13 @@ Grid = namedtuple("Grid", "array transform nodata")
 
 
 def samples(coords, step_m=SAMPLE_M):
-    """Points every `step_m` along a way of (lat, lon) vertices, both ends included."""
-    pts = [coords[0]]
-    for (la0, lo0), (la1, lo1) in zip(coords, coords[1:]):
-        k = math.cos(math.radians((la0 + la1) / 2))
-        n = max(1, math.ceil(math.hypot((la1 - la0) * 111_320, (lo1 - lo0) * 111_320 * k) / step_m))
-        pts += [(la0 + (la1 - la0) * i / n, lo0 + (lo1 - lo0) * i / n) for i in range(1, n + 1)]
-    return np.array(pts, dtype=float)
+    """Points every `step_m` along a way of (lat, lon) vertices, both ends included, however dense its vertices."""
+    c = np.asarray(coords, dtype=float)
+    k = np.cos(np.radians((c[1:, 0] + c[:-1, 0]) / 2))
+    seg = np.hypot(np.diff(c[:, 0]) * 111_320, np.diff(c[:, 1]) * 111_320 * k)
+    along = np.concatenate([[0], np.cumsum(seg)])
+    at_m = np.append(np.arange(0, along[-1], step_m), along[-1]) if along[-1] > 0 else np.array([0.0])
+    return np.column_stack([np.interp(at_m, along, c[:, 0]), np.interp(at_m, along, c[:, 1])])
 
 
 def at(grid, pts):
