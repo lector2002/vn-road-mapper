@@ -84,7 +84,8 @@ def fetch(out):
 
 def gfd_events_near(bounds, cache):
     """Names of the Global Flood Database event zips whose map overlaps `bounds`, read from each map's header.
-    Events mapped in several tiles (23 large floods, none in Southeast Asia) are skipped."""
+    Events mapped in several tiles (23 large floods, none in Southeast Asia) are skipped. The list is cached only
+    when every header was read, so an event lost to a network error is tried again on the next fetch."""
     import rasterio
     if Path(cache).exists():
         return json.loads(Path(cache).read_text())
@@ -101,13 +102,16 @@ def gfd_events_near(bounds, cache):
                 with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR"), \
                         rasterio.open(f"zip+{GFD}{name}!{name[:-4]}.tif") as src:
                     return tuple(src.bounds)
-            except rasterio.errors.RasterioIOError:
-                pass
+            except rasterio.errors.RasterioIOError as e:
+                if "does not exist" in str(e):
+                    return ()
         return None
 
     with ThreadPoolExecutor(16) as pool:
-        near = [n for n, b in zip(names, pool.map(box, names)) if b and overlaps(b, bounds)]
-    Path(cache).write_text(json.dumps(near))
+        boxes = list(pool.map(box, names))
+    near = [n for n, b in zip(names, boxes) if b and overlaps(b, bounds)]
+    if None not in boxes:
+        Path(cache).write_text(json.dumps(near))
     return near
 
 
@@ -278,7 +282,7 @@ def read_rows(path):
         rows = list(csv.DictReader(f))
     for r in rows:
         for k in FEATURES:
-            r[k] = float(r[k]) if r[k] != "" else ""
+            r[k] = float(r[k]) if r.get(k, "") != "" else ""
         r["flooded"] = int(r["flooded"])
     return rows
 

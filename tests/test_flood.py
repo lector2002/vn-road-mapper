@@ -149,3 +149,11 @@ def test_gfd_counts_events_and_leaves_out_permanent_water(tmp_path):
     assert [m[0] for m in maps] == ["2005-01-01", "2010-01-01"]
     counts = gfd_counts(maps, (105.0, 10.0, 105.02, 10.02))
     assert counts.array.tolist() == [[1, 0], [2, 0]]
+
+
+def test_read_rows_accepts_a_table_without_gfd_columns(tmp_path):
+    from tools.floodcheck import read_rows
+    path = tmp_path / "flood_ways.csv"
+    path.write_text("way_id,samples,history,water,z_min,rel_min,flooded\n1,4,0.5,,3.0,-2.0,1\n")
+    row = read_rows(path)[0]
+    assert row["history"] == 0.5 and row["gfd"] == "" and row["flooded"] == 1
