@@ -26,6 +26,16 @@ def test_relabel_only_switches_paved_to_dirt():
     assert p.relabel({"label": "paved"}, [-1])["label"] == "paved"
     assert p.relabel({"label": "dirt"}, [-1]) == {"label": "dirt"}
     assert p.relabel({"label": "water"}, [1]) == {"label": "water"}
+    assert p.relabel({"label": "vegetation"}, [1]) == {"label": "vegetation"}
+
+
+def test_relabel_switches_grass_to_dirt_at_the_grass_threshold():
+    p = probe.Probe(mean=[0], scale=[1], coef=[10], intercept=0, grass_threshold=0.9)
+    assert p.relabel({"label": "vegetation", "confidence": 0.8}, [1]) == {"label": "dirt", "confidence": 1.0, "p_unpaved": 1.0}
+    assert p.relabel({"label": "other"}, [1])["label"] == "dirt"
+    assert p.relabel({"label": "vegetation", "confidence": 0.8}, [0.1]) == {"label": "vegetation", "confidence": 0.8, "p_unpaved": 0.731}
+    assert p.relabel({"label": "paved"}, [0.1])["label"] == "dirt"
+    assert p.relabel({"label": "water"}, [1]) == {"label": "water"}
 
 
 def test_check_embeds_only_paved_frames():
@@ -36,6 +46,21 @@ def test_check_embeds_only_paved_frames():
     assert seen == []
     assert p.check({"label": "paved"}, image)["label"] == "dirt"
     assert seen == [image]
+    assert p.check({"label": "vegetation"}, image) == {"label": "vegetation"}
+    assert seen == [image]
+    p.grass_threshold = 0.9
+    assert p.check({"label": "vegetation"}, image)["label"] == "dirt"
+    assert seen == [image, image]
+
+
+def test_grass_threshold_round_trips_and_defaults_to_off(tmp_path):
+    p = probe.Probe(mean=[0], scale=[1], coef=[1], intercept=0, grass_threshold=0.8)
+    p.save(tmp_path / "p.json")
+    assert probe.Probe.load(tmp_path / "p.json").grass_threshold == 0.8
+    d = json.loads((tmp_path / "p.json").read_text())
+    del d["grass_threshold"]
+    (tmp_path / "p.json").write_text(json.dumps(d))
+    assert probe.Probe.load(tmp_path / "p.json").grass_threshold == 1.0
 
 
 def test_road_crop_keeps_the_bottom_middle():
@@ -49,6 +74,7 @@ def test_load_default_is_none_without_a_file(tmp_path):
 def test_shipped_probe_loads():
     p = probe.load_default()
     assert p is not None and len(p.coef) == len(p.mean) == 512 and 0 < p.threshold < 1
+    assert p.grass_threshold == 1.0
 
 
 def test_pick_threshold_switches_nothing_when_no_threshold_is_safe():
@@ -86,3 +112,28 @@ def test_train_prefers_checked_labels_and_scores_the_test_split(tmp_path, capsys
     text = capsys.readouterr().out
     assert "unpaved called paved: 4" in text and "unpaved called paved: 0" in text
     assert json.loads(out.read_text())["info"]["frames"] == 30
+    assert json.loads(out.read_text())["grass_threshold"] == 1.0
+
+
+def test_train_picks_a_grass_threshold_from_vegetation_frames(tmp_path, capsys):
+    labels = tmp_path / "labels.csv"
+    rows, names, feats, segformer = ["kartaview_sequence,photo,split,surface_by_eye"], [], [], []
+    for ride in range(4):
+        for i in range(10):
+            unpaved = i < 4
+            rows.append(f"{ride},{i},{'test' if ride == 3 else 'dev'},{'unpaved' if unpaved else 'paved'}")
+            names.append(f"{ride}_{i:05d}.jpg")
+            feats.append([1.0 + 0.1 * i if unpaved else -1.0 - 0.1 * i, 0.0])
+            segformer.append("vegetation" if i in (0, 9) else "paved")
+    labels.write_text("\n".join(rows) + "\n")
+    cache = tmp_path / "c.npz"
+    write_cache(cache, names, segformer, feats)
+    args = ["train", "--train", str(labels), str(cache), "dev", "--test", str(labels), str(cache), "test",
+            "--check", str(cache), "--out", str(tmp_path / "p.json")]
+
+    probe_tool.main(args)
+    p = probe.Probe.load(tmp_path / "p.json")
+    assert p.grass_threshold < 1 and p.info["grass_frames"] == 6 and p.info["grass_unpaved"] == 3
+    assert "8 vegetation or other, 4 switched to dirt" in capsys.readouterr().out
+    probe_tool.main(args + ["--no-grass"])
+    assert probe.Probe.load(tmp_path / "p.json").grass_threshold == 1.0

@@ -66,7 +66,7 @@ python -m tools.candidates docs/evaluation/data/2026-11-21-vn-sequences.csv --ou
 
 ## probe.py
 
-Builds features for, trains and scores the dirt probe (`pipeline/segmentation/probe.py`): a logistic regression on CLIP features of the road crop that switches frames SegFormer calls paved to dirt. `features` runs SegFormer and CLIP once per frame folder; `train` picks the threshold by holding out one ride at a time and prints the test split before and after. Full commands are in `docs/evaluation/2026-11-21-phase2-dirt-probe.md`.
+Builds features for, trains and scores the dirt probe (`pipeline/segmentation/probe.py`): a logistic regression on CLIP features of the road crop that switches frames SegFormer calls paved to dirt. `features` runs SegFormer and CLIP once per frame folder; `train` picks the threshold by holding out one ride at a time and prints the test split before and after. It also picks a threshold for frames SegFormer calls vegetation or other (`--no-grass` keeps that recheck off; the shipped probe has it off, see `docs/evaluation/2026-11-22-grassy-dirt-recheck.md`). Full commands are in `docs/evaluation/2026-11-21-phase2-dirt-probe.md`.
 
 ```bash
 python -m tools.probe features output/vn/frames --out output/probe-vn.npz
