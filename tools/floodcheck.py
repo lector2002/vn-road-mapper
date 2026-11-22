@@ -185,7 +185,7 @@ def build(out, log=print):
         kept = 0
         for x in mine:
             pts = samples(x["coords"])
-            if np.nanmin(at(inside, pts)) < 1:
+            if np.nanmin(at(inside, np.vstack([pts, np.asarray(x["coords"], dtype=float)]))) < 1:
                 continue
             f = way_features(x["coords"], history, water, dem, rel)
             wet = at(truth, pts) > 0
