@@ -118,3 +118,20 @@ def test_db_rows_from_step_files(tmp_path, monkeypatch):
     assert rows["roads"] == [(7, "Tỉnh Hà Tĩnh", "track", "", "", "LINESTRING(105.1 18.1,105.2 18.2)")]
     assert rows["flood"] == [(7, "Tỉnh Hà Tĩnh", None, 3.0, 2.5, -1.0, "high")]
     assert rows["votes"] == [] and rows["proposals"] == []
+
+
+def test_summary_counts_coverage_by_class(tmp_path):
+    province.write(tmp_path / "flood_risk.csv", province.FLOOD_FIELDS,
+                   [{"way_id": 1, "highway": "track", "length_m": 500, "flood_risk": "high"},
+                    {"way_id": 2, "highway": "track", "length_m": 1500, "flood_risk": "low"}])
+    province.write(tmp_path / "ways.csv", ["way_id", "surface"], [{"way_id": 1, "surface": "unpaved"}])
+    province.write(tmp_path / "proposals.csv", ["way_id", "status", "proposed_surface"],
+                   [{"way_id": 1, "status": "add", "proposed_surface": "unpaved"}])
+    province.write(tmp_path / "imagery.csv", province.IMAGERY_FIELDS, [photo("mapillary", "s", "1", 18, 105, 1)])
+    province.write(tmp_path / "timings.csv", ["step", "seconds", "finished"], [{"step": "frames", "seconds": 9}])
+    (tmp_path / "runs").mkdir()
+    s = province.summary(tmp_path, log=lambda *a: None)
+    assert s["road_km"] == 2.0 and s["road_km_with_call"] == 0.5
+    assert s["km_by_highway"] == {"track": [2.0, 0.5]}
+    assert s["flood_risk_with_call"] == {"high": 1} and s["proposed_tags"] == {"unpaved": 1}
+    assert s["seconds"] == {"frames": 9}

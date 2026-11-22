@@ -9,6 +9,7 @@ Steps, each re-runnable; a re-run keeps what is already downloaded or labelled a
     match     snaps each run onto OSM ways with a (self-hosted) Valhalla server
     flood     flood-risk class for every road in the province (Phase 5 layers)
     fuse      fuses all runs into ways.csv and writes proposals from the local OSM extract
+    summary   coverage, proposals and step times in summary.json
     db        loads roads, fused votes, proposals and flood classes into PostGIS (replacing the province's rows)
 
 Nothing here edits OSM. Timings for each step are appended to timings.csv.
@@ -424,6 +425,42 @@ def db(out, dsn, log=print):
     return rows
 
 
+def summary(out, log=print):
+    """What the run covered: photos, matched frames, road length with a fused call by class, proposals, step times."""
+    from collections import Counter
+    out = Path(out)
+    roads = {r["way_id"]: r for r in read(out / "flood_risk.csv")}
+    fused = {r["way_id"]: r for r in read(out / "ways.csv")}
+    proposals = read(out / "proposals.csv")
+    imagery_rows = read(out / "imagery.csv")
+    km = defaultdict(lambda: [0.0, 0.0])
+    for way_id, r in roads.items():
+        km[r["highway"]][0] += float(r["length_m"]) / 1000
+        if way_id in fused:
+            km[r["highway"]][1] += float(r["length_m"]) / 1000
+    total, seen = sum(v[0] for v in km.values()), sum(v[1] for v in km.values())
+    matched = sum(1 for folder in runs_of(out) if (folder / "matches.csv").exists()
+                  for m in read(folder / "matches.csv") if m["way_id"])
+    result = {
+        "photos": dict(Counter(r["source"] for r in imagery_rows)),
+        "runs": len(runs_of(out)),
+        "matched_frames": matched,
+        "ways_with_call": len(fused),
+        "road_km": round(total, 1),
+        "road_km_with_call": round(seen, 1),
+        "km_by_highway": {k: [round(v[0], 1), round(v[1], 1)] for k, v in sorted(km.items(), key=lambda kv: -kv[1][0])},
+        "surface_calls": dict(Counter(r["surface"] for r in fused.values())),
+        "proposals": dict(Counter(r["status"] for r in proposals)),
+        "proposed_tags": dict(Counter(r["proposed_surface"] for r in proposals if r["proposed_surface"])),
+        "flood_risk_all": dict(Counter(r["flood_risk"] for r in roads.values())),
+        "flood_risk_with_call": dict(Counter(roads[w]["flood_risk"] for w in fused if w in roads)),
+        "seconds": {r["step"]: int(r["seconds"]) for r in read(out / "timings.csv")},
+    }
+    (out / "summary.json").write_text(json.dumps(result, indent=1, ensure_ascii=False))
+    log(json.dumps(result, ensure_ascii=False))
+    return result
+
+
 def timed(out, step, fn, *args):
     started = time.perf_counter()
     result = fn(*args)
@@ -441,7 +478,7 @@ def timed(out, step, fn, *args):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description="Run the pipeline over one province from public imagery.")
-    p.add_argument("step", choices=["boundary", "imagery", "frames", "segment", "match", "flood", "fuse", "db"])
+    p.add_argument("step", choices=["boundary", "imagery", "frames", "segment", "match", "flood", "fuse", "summary", "db"])
     p.add_argument("out", type=Path)
     p.add_argument("--name", help="boundary: the province's OSM name, e.g. 'Tỉnh Hà Tĩnh'")
     p.add_argument("--pbf", type=Path, help="boundary: Geofabrik Vietnam extract")
@@ -460,6 +497,7 @@ def main(argv=None):
         "match": lambda: match(args.out, args.valhalla),
         "flood": lambda: flood(args.out, args.flood_dir),
         "fuse": lambda: fuse(args.out),
+        "summary": lambda: summary(args.out),
         "db": lambda: db(args.out, args.dsn),
     }
     if args.step == "boundary" and not (args.name and args.pbf):
