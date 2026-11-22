@@ -88,3 +88,19 @@ python -m tools.pilot score export.csv
 - `build` keeps only `add` proposals on rural highway types with photos for the proposed surface, puts unpaved first, then re-fetches every way from the OSM API and drops any that has a `surface` tag by now.
 - It writes `pilot.csv` (one row per way with 3 KartaView photo links and an empty `decision` column), `challenge.geojson` (MapRoulette line-by-line GeoJSON; each task is a cooperative tag fix that only sets `surface`) and `review.html` (the export review map for just these ways).
 - `score` counts Fixed/accept as accepted and Not an issue/reject as rejected, ignores skipped or too-hard tasks, and passes at 90% accepted.
+
+## widthcheck.py
+
+Checks width classes against OSM `width` tags on public Mapillary photos. It is how Phase 4 was scored (`docs/evaluation/2026-11-21-phase4-width-classes.md`).
+
+```bash
+pip install osmium   # only for the ways step
+python -m tools.widthcheck ways vietnam-latest.osm.pbf --out output/width        # Geofabrik extract
+python -m tools.widthcheck photos output/width --frames output/width/frames      # needs MAPILLARY_ACCESS_TOKEN
+python -m pipeline.width.estimate output/width/frames --out output/width --camera-height 1.4
+python -m tools.widthcheck score output/width/photos.csv output/width/widths.csv
+```
+
+- `ways` keeps minor roads (`residential`, `service`, `track`, `unclassified`, `tertiary`, `living_street`, `road`, `path`) whose `width` or `est_width` is a plain number from 0.5 to 20 m, and every highway around them.
+- `photos` keeps non-panoramic photos taken on the way itself: within 5 m of it, at least 15 m from either end (short alleys meet a bigger road there and the photo shows that road), looking along it (within 20°), and with no other highway within 3 m of being as close. At most 12 photos per way and 3 per sequence. Each way is in `dev` or `test` by a hash of its id.
+- `score` gives each way the class of its median frame width and prints the confusion table per split, next to calling every road `two_cars`.

@@ -10,10 +10,19 @@ from PIL import Image, ImageDraw
 from pipeline.segmentation.segment import CLASSES, DEFAULT_MODEL as SEG_MODEL
 
 ROAD = [CLASSES.index(c) for c in ("paved", "dirt", "mud", "water")]
-CSV_FIELDS = ["filename", "width_m", "horizon", "rows", "residual"]
+CSV_FIELDS = ["filename", "width_m", "width_class", "horizon", "rows", "residual"]
+# Practical classes for riders and ambulances: motorbike only (under 2.5 m), one car (2.5-4 m), two cars (over 4 m).
+WIDTH_CLASSES = ("motorbike", "one_car", "two_cars")
 SAMPLE_ROWS = np.linspace(0.3, 0.97, 15)
 MIN_ROWS = 4
 MAX_RESIDUAL = 0.1
+
+
+def width_class(width_m):
+    if width_m in ("", None):
+        return ""
+    width_m = float(width_m)
+    return "motorbike" if width_m < 2.5 else "one_car" if width_m <= 4 else "two_cars"
 
 
 def road_span(road_row):
@@ -49,7 +58,7 @@ def estimate_width(class_map, camera_height_m):
     # On flat ground the road's pixel width grows linearly with the row: span = W * (y - horizon) / h.
     # Fitting that line gives the horizon and W without knowing the lens focal length.
     spans, clipped = sample_spans(class_map)
-    blank = {"width_m": "", "horizon": "", "rows": len(spans), "residual": ""}
+    blank = {"width_m": "", "width_class": "", "horizon": "", "rows": len(spans), "residual": ""}
     if len(spans) < MIN_ROWS:
         return blank
     ys, px = np.array(spans, dtype=float).T
@@ -61,12 +70,13 @@ def estimate_width(class_map, camera_height_m):
     result = {"horizon": round(horizon / class_map.shape[0], 3), "rows": len(spans), "residual": round(residual, 3)}
     # The top sampled road row sits just under the vanishing point, so allow fit noise of a few rows.
     if residual > MAX_RESIDUAL or horizon > ys.min() + 0.05 * class_map.shape[0]:
-        return {**result, "width_m": ""}
+        return {**result, "width_m": "", "width_class": ""}
     # A row where the road fills the frame must be one where the fitted road is at least frame-wide.
     # If not, the clean rows were cut short by a car, a shadow or a wall, not by the road edges.
     if any(slope * y + intercept < 0.9 * class_map.shape[1] for y in clipped):
-        return {**result, "width_m": ""}
-    return {**result, "width_m": round(float(slope * camera_height_m), 2)}
+        return {**result, "width_m": "", "width_class": ""}
+    width_m = round(float(slope * camera_height_m), 2)
+    return {**result, "width_m": width_m, "width_class": width_class(width_m)}
 
 
 def draw(image, class_map, result):
