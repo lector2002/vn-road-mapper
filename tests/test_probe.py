@@ -112,6 +112,7 @@ def test_train_prefers_checked_labels_and_scores_the_test_split(tmp_path, capsys
     text = capsys.readouterr().out
     assert "unpaved called paved: 4" in text and "unpaved called paved: 0" in text
     assert json.loads(out.read_text())["info"]["frames"] == 30
+    assert json.loads(out.read_text())["grass_threshold"] == 1.0
 
 
 def test_train_picks_a_grass_threshold_from_vegetation_frames(tmp_path, capsys):
