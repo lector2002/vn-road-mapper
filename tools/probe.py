@@ -7,6 +7,7 @@
 `features` runs SegFormer and CLIP once per frame. `train` fits on --train and --extra rows that
 SegFormer calls paved or dirt. Each ride is held out in turn; the threshold is the lowest one at
 which at most --max-paved-error of held-out paved frames in --train (and --prefer) rows flip to dirt.
+The grass threshold is picked the same way on frames SegFormer calls vegetation or other.
 --extra rows only train: use it for labels that failed a spot check.
 """
 import argparse
@@ -16,7 +17,8 @@ from pathlib import Path
 
 import numpy as np
 
-from pipeline.segmentation.probe import CLIP_MODEL, fit
+from pipeline.segmentation.probe import CLIP_MODEL, GRASS_LABELS, fit
+from tools import sources
 from tools.benchmark import frame_name, report, score
 
 UNPAVED = {"unpaved", "mud"}
@@ -65,34 +67,36 @@ def frames(labels_csv, cache, split="all", prefer=None, calibrate=True):
                 continue
             feats, model, conf = cache[name]
             eye = prefer.get(name, label["surface_by_eye"])
-            rows.append({**label, "osm_way_id": label.get("osm_way_id") or label["kartaview_sequence"],
+            rows.append({**label, "ride": sources.sequence(label),
+                         "osm_way_id": label.get("osm_way_id") or sources.sequence(label),
                          "surface_by_eye": "unpaved" if eye in UNPAVED else eye,
                          "label": model, "confidence": conf, "feats": feats,
                          "calibrate": calibrate or name in prefer})
     return rows
 
 
-def trainable(rows):
-    return [r for r in rows if r["surface_by_eye"] in UNPAVED | {"paved"} and r["label"] in ("paved", "dirt")]
+def trainable(rows, labels=("paved", "dirt")):
+    return [r for r in rows if r["surface_by_eye"] in UNPAVED | {"paved"} and r["label"] in labels]
 
 
 def target(rows):
     return np.array([r["surface_by_eye"] in UNPAVED for r in rows], float)
 
 
-def held_out_p(rows, c):
-    """p_unpaved for every row from a probe that never saw its ride."""
-    p = np.zeros(len(rows))
-    for ride in sorted({r["kartaview_sequence"] for r in rows}):
-        test = [i for i, r in enumerate(rows) if r["kartaview_sequence"] == ride]
-        train = [r for r in rows if r["kartaview_sequence"] != ride]
-        p[test] = fit([r["feats"] for r in train], target(train), c).p_unpaved([rows[i]["feats"] for i in test])
-    return p
+def held_out_p(rows, c, others=()):
+    """p_unpaved for every row (and every row of `others`) from a probe fit on `rows` that never saw its ride."""
+    every = list(rows) + list(others)
+    p = np.zeros(len(every))
+    for ride in sorted({r["ride"] for r in every}):
+        test = [i for i, r in enumerate(every) if r["ride"] == ride]
+        train = [r for r in rows if r["ride"] != ride]
+        p[test] = fit([r["feats"] for r in train], target(train), c).p_unpaved([every[i]["feats"] for i in test])
+    return p[:len(rows)], p[len(rows):]
 
 
-def pick_threshold(rows, p, max_paved_error):
-    """Lowest threshold at which at most max_paved_error of calibration frames SegFormer calls paved flip."""
-    paved = np.array([r["calibrate"] and r["surface_by_eye"] == "paved" and r["label"] == "paved" for r in rows])
+def pick_threshold(rows, p, max_paved_error, labels=("paved",)):
+    """Lowest threshold at which at most max_paved_error of calibration paved frames SegFormer gives `labels` flip."""
+    paved = np.array([r["calibrate"] and r["surface_by_eye"] == "paved" and r["label"] in labels for r in rows])
     for t in THRESHOLDS:
         if not paved.any() or (p[paved] >= t).mean() <= max_paved_error:
             return round(float(t), 3)
@@ -108,23 +112,32 @@ def train_main(args):
     prefer = {}
     for path in args.prefer:
         prefer.update(read_labels(path))
-    train = []
+    train, grass = [], []
     for specs, calibrate in ((args.train, True), (args.extra, False)):
         for labels_csv, cache, split in specs:
-            train += trainable(frames(labels_csv, load_cache(cache), split, prefer, calibrate))
+            rows = frames(labels_csv, load_cache(cache), split, prefer, calibrate)
+            train += trainable(rows)
+            grass += trainable(rows, GRASS_LABELS)
     y = target(train)
-    threshold = pick_threshold(train, held_out_p(train, args.c), args.max_paved_error)
+    p_train, p_grass = held_out_p(train, args.c, grass)
+    threshold = pick_threshold(train, p_train, args.max_paved_error)
+    grass_threshold = pick_threshold(grass, p_grass, args.max_paved_error, GRASS_LABELS) if args.grass else 1.0
     probe = fit([r["feats"] for r in train], y, args.c)
-    probe.threshold = threshold
-    probe.info = {"clip_model": CLIP_MODEL, "rides": sorted({r["kartaview_sequence"] for r in train}),
-                  "frames": len(train), "unpaved": int(y.sum()), "c": args.c, "max_paved_error": args.max_paved_error}
-    print(f"trained on {len(train)} frames ({int(y.sum())} unpaved) from {len(probe.info['rides'])} rides, threshold {threshold}")
+    probe.threshold, probe.grass_threshold = threshold, grass_threshold
+    probe.info = {"clip_model": CLIP_MODEL, "rides": sorted({r["ride"] for r in train}),
+                  "frames": len(train), "unpaved": int(y.sum()), "c": args.c, "max_paved_error": args.max_paved_error,
+                  "grass_frames": len(grass), "grass_unpaved": int(target(grass).sum()) if grass else 0}
+    print(f"trained on {len(train)} frames ({int(y.sum())} unpaved) from {len(probe.info['rides'])} rides, "
+          f"threshold {threshold}, grass threshold {grass_threshold} ({len(grass)} grass frames)")
     test = frames(args.test[0], load_cache(args.test[1]), args.test[2])
     print("\nSegFormer:\n" + report(score(test)) + "\n\nWith the dirt probe:\n" + report(score(relabel(probe, test))))
     for cache in args.check:
         rows = [{"label": lab, "feats": f} for f, lab, _ in load_cache(cache).values()]
-        flipped = sum(r["label"] == "paved" and s["label"] == "dirt" for r, s in zip(rows, relabel(probe, rows)))
-        print(f"\n{cache}: {len(rows)} frames, {sum(r['label'] == 'paved' for r in rows)} paved, {flipped} switched to dirt")
+        after = relabel(probe, rows)
+        flipped = sum(r["label"] == "paved" and s["label"] == "dirt" for r, s in zip(rows, after))
+        grass_flipped = sum(r["label"] in GRASS_LABELS and s["label"] == "dirt" for r, s in zip(rows, after))
+        print(f"\n{cache}: {len(rows)} frames, {sum(r['label'] == 'paved' for r in rows)} paved, {flipped} switched to dirt; "
+              f"{sum(r['label'] in GRASS_LABELS for r in rows)} vegetation or other, {grass_flipped} switched to dirt")
     if args.out:
         probe.save(args.out)
     return probe
@@ -146,6 +159,8 @@ def main(argv=None):
     t.add_argument("--check", nargs="*", default=[], metavar="CACHE", help="unlabelled paved rides: count frames switched to dirt")
     t.add_argument("--c", type=float, default=1.0, help="inverse L2 weight")
     t.add_argument("--max-paved-error", type=float, default=0.03)
+    t.add_argument("--no-grass", dest="grass", action="store_false",
+                   help="leave frames SegFormer calls vegetation or other alone (grass threshold 1.0)")
     t.add_argument("--out", type=Path, help="write the probe JSON here")
     args = p.parse_args(argv)
     if args.cmd == "features":

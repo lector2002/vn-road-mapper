@@ -3,6 +3,9 @@
 SegFormer's ADE20K labels call most Vietnamese dirt roads "road". For frames SegFormer calls paved,
 the probe looks at the road crop and switches the label to dirt when it is sure enough. It never
 switches dirt to paved (docs/evaluation/2026-11-21-phase2-dirt-probe.md).
+
+Grassy dirt tracks come out "vegetation" or "other" instead, so they never vote. Those frames get the
+same check with their own, stricter threshold (`grass_threshold`; 1.0 turns it off).
 """
 import json
 from pathlib import Path
@@ -12,6 +15,7 @@ import numpy as np
 CLIP_MODEL = "openai/clip-vit-base-patch16"
 DEFAULT_PROBE = Path(__file__).with_name("surface_probe.json")
 CROP = (0.15, 0.45, 0.85, 1.0)
+GRASS_LABELS = ("vegetation", "other")
 
 
 def road_crop(image):
@@ -57,37 +61,51 @@ def fit(X, y, c=1.0, steps=50):
 
 
 class Probe:
-    def __init__(self, mean, scale, coef, intercept, threshold=0.5, info=None, embedder=None):
+    def __init__(self, mean, scale, coef, intercept, threshold=0.5, info=None, embedder=None, grass_threshold=1.0):
         self.mean, self.scale, self.coef = (np.asarray(a, np.float64) for a in (mean, scale, coef))
         self.intercept, self.threshold, self.info = float(intercept), float(threshold), info or {}
+        self.grass_threshold = float(grass_threshold)
         self.embedder = embedder
+
+    def checks(self, label):
+        return label == "paved" or (label in GRASS_LABELS and self.grass_threshold < 1)
 
     def p_unpaved(self, X):
         return sigmoid(((np.atleast_2d(X) - self.mean) / self.scale) @ self.coef + self.intercept)
 
     def relabel(self, summary, features):
-        """A paved frame becomes dirt when p_unpaved reaches the threshold; other labels stay."""
-        if summary["label"] != "paved":
+        """A paved frame becomes dirt at `threshold`, a vegetation or other frame at `grass_threshold`.
+
+        A grass frame switched to dirt gets p_unpaved as its confidence, since its pixel share describes the grass.
+        """
+        label = summary["label"]
+        if not self.checks(label):
             return summary
         p = float(self.p_unpaved(features)[0])
-        return {**summary, "label": "dirt" if p >= self.threshold else "paved", "p_unpaved": round(p, 3)}
+        if label == "paved":
+            return {**summary, "label": "dirt" if p >= self.threshold else "paved", "p_unpaved": round(p, 3)}
+        if p >= self.grass_threshold:
+            return {**summary, "label": "dirt", "confidence": round(p, 3), "p_unpaved": round(p, 3)}
+        return {**summary, "p_unpaved": round(p, 3)}
 
     def check(self, summary, image):
-        if summary["label"] != "paved":
+        if not self.checks(summary["label"]):
             return summary
         if self.embedder is None:
             self.embedder = Embedder(self.info.get("clip_model", CLIP_MODEL))
         return self.relabel(summary, self.embedder([image])[0])
 
     def save(self, path):
-        data = {"info": self.info, "threshold": self.threshold, "intercept": self.intercept,
+        data = {"info": self.info, "threshold": self.threshold, "grass_threshold": self.grass_threshold,
+                "intercept": self.intercept,
                 **{k: [float(f"{v:.6g}") for v in getattr(self, k)] for k in ("mean", "scale", "coef")}}
         Path(path).write_text(json.dumps(data, ensure_ascii=False) + "\n", encoding="utf-8")
 
     @classmethod
     def load(cls, path=DEFAULT_PROBE):
         d = json.loads(Path(path).read_text(encoding="utf-8"))
-        return cls(d["mean"], d["scale"], d["coef"], d["intercept"], d["threshold"], d.get("info"))
+        return cls(d["mean"], d["scale"], d["coef"], d["intercept"], d["threshold"], d.get("info"),
+                   grass_threshold=d.get("grass_threshold", 1.0))
 
 
 def load_default(path=DEFAULT_PROBE):
