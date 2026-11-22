@@ -93,6 +93,8 @@ Public imagery is rarely taken during floods, and water depth is not visible in 
 
 **Expect:** coverage only where public imagery exists, which favours main roads; HeiGIT's model covers 5.3% of Vietnam's road length for the same reason. Rural lanes, the project's target, stay thin until a partner offers footage.
 
+**Status:** `tools/province.py` runs one province end to end: OSM outline, Mapillary vector tiles and KartaView listed and thinned to one photo per 50 m, resumable download, segmentation in worker processes, self-hosted Valhalla, the Phase 5 flood layer, fusion and export, and a PostGIS load. Hà Tĩnh ([write-up](evaluation/2026-11-22-phase6-ha-tinh.md)): 11,417 public photos in 3 h 51 min on an 8-core CPU with no GPU, 89% of it segmentation; calls on 669 roads, 635 of 16,289 km, 36% of trunk length but 1.3% of residential and 0.5% of tracks; 79 review proposals, nothing uploaded. Next: a GPU, and footage of rural lanes from a partner.
+
 ## Summary
 
 | Phase | Effort | Needs a person | What changes |
@@ -103,4 +105,4 @@ Public imagery is rarely taken during floods, and water depth is not visible in 
 | 3 OSM pilot | 1 session | OSM volunteers | First accepted edits |
 | 4 Width classes | done | No | Class on own rides; none yet on public imagery |
 | 5 Flood layer | 2–4 sessions | Partners to check | District flood-risk map |
-| 6 One province | 2–3 sessions | No | Province coverage where imagery exists |
+| 6 One province | done | No | Province coverage where imagery exists |

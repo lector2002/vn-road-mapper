@@ -74,7 +74,7 @@ Public imagery first; nothing depends on hiring riders or labellers. Details and
 - [ ] **Phase 3:** OSM Vietnam community review, then a small human-reviewed pilot. The kit is ready for the owner to send ([docs/pilot](docs/pilot/README.md)): announcement, wiki page, MapRoulette challenge and 57 proposals in Ô Môn, Cần Thơ
 - [ ] **Phase 4:** width as classes (motorbike only / one car / two cars)
 - [ ] **Phase 5:** flood-risk layer from satellite flood maps and elevation. Scored on the October 2025 central Vietnam flood: 35% of `high` roads flooded against 13% of all ([evaluation](docs/evaluation/2026-11-22-phase5-flood-risk.md))
-- [ ] **Phase 6:** one province, self-hosted Valhalla, PostGIS
+- [x] **Phase 6:** one province, self-hosted Valhalla, PostGIS. Hà Tĩnh from all its public photos in 3 h 51 min on CPU: calls on 669 roads (635 of 16,289 km, mostly main roads) and 79 review proposals ([write-up](docs/evaluation/2026-11-22-phase6-ha-tinh.md))
 
 ## Where the data comes from
 
