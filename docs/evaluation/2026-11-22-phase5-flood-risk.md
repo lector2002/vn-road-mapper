@@ -4,28 +4,28 @@
 
 ## Result
 
-On the held-out flood (EMSR848, central Vietnam, late October 2025), 13.8% of the 173,443 roads in the mapped areas were under water. Of the roads the layer calls `high`, 36.3% were, 2.6 times the base rate, and `high` holds 41% of all flooded roads in 16% of the roads.
+On the held-out flood (EMSR848, central Vietnam, late October 2025), 12.9% of the 173,448 roads in the mapped areas were under water. Of the roads the layer calls `high`, 35.5% were, 2.8 times the base rate, and `high` holds 43% of all flooded roads in 16% of the roads.
 
 | Test split, EMSR848 | Roads | Flooded | Share flooded |
 |---|---|---|---|
-| `high` | 26,937 | 9,774 | 36.3% |
-| `medium` | 17,946 | 3,546 | 19.8% |
-| `low` | 128,560 | 10,571 | 8.2% |
-| All | 173,443 | 23,891 | 13.8% |
+| `high` | 26,883 | 9,538 | 35.5% |
+| `medium` | 17,841 | 3,264 | 18.3% |
+| `low` | 128,724 | 9,488 | 7.4% |
+| All | 173,448 | 22,290 | 12.9% |
 
-Ranking roads by class (`high` > `medium` > `low`) gives an AUC of 0.68: a flooded road outranks a dry one 68% of the time. Layer by layer on test:
+Ranking roads by class (`high` > `medium` > `low`) gives an AUC of 0.69: a flooded road outranks a dry one 69% of the time. Layer by layer on test:
 
 | Layer, test split | AUC | Note |
 |---|---|---|
-| Earlier flood maps (history) | 0.67 | 7,667 roads with 20% or more of their length in an earlier map: 76.3% flooded |
-| Lowest elevation (lower = riskier) | 0.71 | Roads at 5 m or less: 28.2% flooded; over 20 m: 4.4% |
-| Surface-water occurrence | 0.59 | |
-| Height against surroundings | 0.54 | Adds little on its own |
-| Combined classes | 0.68 | |
+| Earlier flood maps (history) | 0.68 | 7,929 roads with 20% or more of their length in an earlier map: 74.3% flooded |
+| Lowest elevation (lower = riskier) | 0.71 | Roads at 5 m or less: 27.1% flooded; over 20 m: 3.9% |
+| Surface-water occurrence | 0.60 | |
+| Height against surroundings | 0.55 | Adds little on its own |
+| Combined classes | 0.69 | |
 
 **Flood history is the strongest signal where it exists.** A road that an earlier UNOSAT or EMS map showed under water flooded again three times in four. It needs earlier maps of the same place: on test, 12,834 roads (7%) had any. **Elevation carries the rest.** It covers every road, and on its own it ranks slightly better than the three classes, because the classes cut a smooth signal into three steps. The classes are what a rider or health station can use, so they ship; the evaluation keeps the per-layer AUCs next to them.
 
-On the dev floods (EMSR754 Red River delta, September 2024; EMSR844 Quang Châu in the north, October 2025) only 1.7% of roads flooded, and the layer is much weaker: `high` 2.9% flooded, AUC 0.65. Almost no earlier flood maps cover the north, the EMS maps there are mostly cities, and Nam Định, Ninh Bình and Thái Bình score at chance.
+On the dev floods (EMSR754 Red River delta, September 2024; EMSR844 Quang Châu in the north, October 2025) only 1.6% of roads flooded, and the layer is much weaker: `high` 2.8% flooded, AUC 0.65. Almost no earlier flood maps cover the north, the EMS maps there are mostly cities, and Nam Định, Ninh Bình and Thái Bình score at chance.
 
 ## What ships
 
@@ -55,27 +55,27 @@ On the dev floods (EMSR754 Red River delta, September 2024; EMSR844 Quang Châu 
 | Split | Area | Roads | Flooded | `high` roads | `high` flooded | `high` catches | AUC | Roads with history |
 |---|---|---|---|---|---|---|---|---|
 | dev | EMSR754 01 Cổ Tiết | 1,852 | 0 | 0 | – | – | – | 0 |
-| dev | EMSR754 02 Nông Trang | 10,692 | 303 (2.8%) | 0 | – | 0% | 0.60 | 0 |
-| dev | EMSR754 03 Hà Nội | 27,784 | 394 (1.4%) | 760 | 15.7% | 30% | 0.80 | 0 |
-| dev | EMSR754 04 Hạ Long | 5,487 | 8 (0.1%) | 2,100 | 0.4% | 100% | 0.81 | 1,052 |
-| dev | EMSR754 05 Hải Phòng | 4,480 | 6 (0.1%) | 2,102 | 0.3% | 100% | 0.77 | 1,350 |
-| dev | EMSR754 06 Thái Bình | 6,059 | 0 | 1,054 | 0.0% | – | – | 0 |
-| dev | EMSR754 07 Nam Định | 3,978 | 56 (1.4%) | 1,064 | 0.7% | 12% | 0.45 | 0 |
-| dev | EMSR754 08 Thanh Hóa | 5,444 | 2 (0.0%) | 1,699 | 0.0% | 0% | 0.53 | 0 |
-| dev | EMSR754 09 Ninh Bình | 9,842 | 66 (0.7%) | 2,499 | 0.4% | 15% | 0.47 | 0 |
-| dev | EMSR754 10 Hải Dương | 6,901 | 446 (6.5%) | 1,940 | 6.2% | 27% | 0.55 | 0 |
-| dev | EMSR754 11 Chí Linh | 9,280 | 228 (2.5%) | 1,378 | 7.5% | 46% | 0.73 | 0 |
-| dev | EMSR844 01 Quang Châu | 6,331 | 148 (2.3%) | 1,196 | 7.1% | 57% | 0.72 | 190 |
-| test | EMSR848 01 Quảng Ngãi | 32,652 | 3,442 (10.5%) | 3,317 | 40.7% | 39% | 0.71 | 1,223 |
-| test | EMSR848 02 Tam Kỳ | 19,646 | 1,047 (5.3%) | 2,306 | 32.1% | 71% | 0.84 | 1,733 |
-| test | EMSR848 03 Đà Nẵng | 38,743 | 3,579 (9.2%) | 7,896 | 27.5% | 61% | 0.76 | 3,842 |
-| test | EMSR848 04–07 Huế | 21,029 | 3,201 (15.2%) | 6,419 | 36.0% | 72% | 0.80 | 2,665 |
-| test | EMSR848 16 Quy Nhơn | 30,357 | 9,712 (32.0%) | 3,635 | 69.6% | 26% | 0.63 | 2,577 |
-| test | EMSR848 17 Tuy Hòa | 13,239 | 2,055 (15.5%) | 1,370 | 43.6% | 29% | 0.66 | 794 |
-| test | EMSR848 18 Nha Trang | 10,513 | 213 (2.0%) | 1,994 | 3.5% | 33% | 0.58 | 0 |
-| test | EMSR848 19 Kim Châu | 7,264 | 642 (8.8%) | 0 | – | 0% | 0.59 | 0 |
+| dev | EMSR754 02 Nông Trang | 10,692 | 297 (2.8%) | 0 | – | 0% | 0.60 | 0 |
+| dev | EMSR754 03 Hà Nội | 27,783 | 377 (1.4%) | 752 | 15.7% | 31% | 0.80 | 0 |
+| dev | EMSR754 04 Hạ Long | 5,487 | 7 (0.1%) | 2,111 | 0.3% | 100% | 0.81 | 1,030 |
+| dev | EMSR754 05 Hải Phòng | 4,481 | 5 (0.1%) | 2,103 | 0.2% | 100% | 0.77 | 1,329 |
+| dev | EMSR754 06 Thái Bình | 6,059 | 0 | 1,042 | 0.0% | – | – | 0 |
+| dev | EMSR754 07 Nam Định | 3,979 | 50 (1.3%) | 1,045 | 0.7% | 14% | 0.48 | 0 |
+| dev | EMSR754 08 Thanh Hóa | 5,444 | 2 (0.0%) | 1,691 | 0.0% | 0% | 0.53 | 0 |
+| dev | EMSR754 09 Ninh Bình | 9,842 | 64 (0.7%) | 2,475 | 0.3% | 12% | 0.46 | 0 |
+| dev | EMSR754 10 Hải Dương | 6,903 | 436 (6.3%) | 1,916 | 5.8% | 26% | 0.55 | 0 |
+| dev | EMSR754 11 Chí Linh | 9,282 | 217 (2.3%) | 1,357 | 7.2% | 45% | 0.73 | 0 |
+| dev | EMSR844 01 Quang Châu | 6,332 | 129 (2.0%) | 1,191 | 6.5% | 60% | 0.76 | 186 |
+| test | EMSR848 01 Quảng Ngãi | 32,652 | 3,259 (10.0%) | 3,302 | 39.2% | 40% | 0.71 | 1,160 |
+| test | EMSR848 02 Tam Kỳ | 19,646 | 963 (4.9%) | 2,290 | 31.0% | 74% | 0.86 | 1,670 |
+| test | EMSR848 03 Đà Nẵng | 38,745 | 3,416 (8.8%) | 7,897 | 26.8% | 62% | 0.76 | 3,744 |
+| test | EMSR848 04–07 Huế | 21,029 | 3,161 (15.0%) | 6,392 | 36.1% | 73% | 0.81 | 2,617 |
+| test | EMSR848 16 Quy Nhơn | 30,358 | 8,759 (28.9%) | 3,666 | 66.9% | 28% | 0.64 | 2,498 |
+| test | EMSR848 17 Tuy Hòa | 13,239 | 1,926 (14.5%) | 1,355 | 43.2% | 30% | 0.67 | 771 |
+| test | EMSR848 18 Nha Trang | 10,513 | 195 (1.9%) | 1,981 | 3.3% | 34% | 0.59 | 0 |
+| test | EMSR848 19 Kim Châu | 7,266 | 611 (8.4%) | 0 | – | 0% | 0.59 | 0 |
 
-The layer works best where 2020 UNOSAT maps already covered the same river plains (Tam Kỳ, Huế, Đà Nẵng: AUC 0.76–0.84) and worst where no earlier map exists (Nha Trang, Kim Châu: 0.58–0.59).
+The layer works best where 2020 UNOSAT maps already covered the same river plains (Tam Kỳ, Huế, Đà Nẵng: AUC 0.76–0.86) and worst where no earlier map exists (Nha Trang, Kim Châu: 0.59).
 
 ## Caveats
 
