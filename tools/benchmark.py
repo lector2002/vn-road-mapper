@@ -80,7 +80,8 @@ def fetch_frames(labels, frames_dir, photos_of=list_photos, download=get, mapill
 
 
 def voted(row, min_confidence):
-    return row["label"] in SURFACES and float(row["confidence"]) >= min_confidence
+    confidence = float(row["confidence"])
+    return row["label"] in SURFACES and confidence > 0 and confidence >= min_confidence
 
 
 def score(rows, min_confidence=0.5):
