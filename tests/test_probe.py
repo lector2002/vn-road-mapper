@@ -216,3 +216,79 @@ def test_frames_the_road_check_leaves_alone_still_get_the_dirt_probe():
     assert p.check({"label": "vegetation", "confidence": 0.9}, image, lane_map())["label"] == "dirt"
     assert p.check({"label": "paved", "confidence": 0.4}, image, lane_map())["label"] == "dirt"
     assert len(embedder.crops) == 2
+
+
+def occluded_lane_map(width=40, height=100):
+    from pipeline.segmentation.segment import CLASSES
+
+    class_map = lane_map(width=width, height=height)
+    class_map[85:100, 14:26] = CLASSES.index("other")
+    return class_map
+
+
+class FakeOcclusionEmbedder:
+    def __init__(self, ps):
+        self.ps, self.calls = list(ps), []
+
+    def p_unpaved(self, image, *args, **kwargs):
+        return self.p_unpaved_many([image], *args, **kwargs)[0]
+
+    def p_unpaved_many(self, images, *args, **kwargs):
+        self.calls += [image.size for image in images]
+        return [self.ps.pop(0) for _ in images]
+
+    def __call__(self, images):
+        return np.ones((len(images), 1))
+
+
+def test_occluded_road_read_labels_when_both_crops_agree():
+    embedder = FakeOcclusionEmbedder([0.1, 0.15])
+    p = probe.Probe(mean=[0], scale=[1], coef=[1], intercept=0, embedder=embedder, road_check=True)
+    out = p.check({"label": "vegetation", "confidence": 0.9}, Image.new("RGB", (40, 100)), occluded_lane_map())
+    assert out["label"] == "paved" and out["confidence"] == 0.85 and out["p_unpaved"] == 0.125
+    assert embedder.calls == [(23, 31), (28, 55)]
+
+
+def test_occluded_road_read_preserves_a_direct_surface_vote():
+    embedder = FakeOcclusionEmbedder([0.1, 0.9])
+    p = probe.Probe(mean=[0], scale=[1], coef=[1], intercept=0, embedder=embedder, road_check=True)
+    out = p.check({"label": "dirt", "confidence": 0.9}, Image.new("RGB", (40, 100)), occluded_lane_map())
+    assert out == {"label": "dirt", "confidence": 0.9}
+
+
+def test_occluded_road_read_keeps_vegetation_as_nonwater_evidence_when_crops_disagree():
+    embedder = FakeOcclusionEmbedder([0.1, 0.9])
+    p = probe.Probe(mean=[0], scale=[1], coef=[1], intercept=0, embedder=embedder, road_check=True)
+    out = p.check({"label": "vegetation", "confidence": 0.9}, Image.new("RGB", (40, 100)), occluded_lane_map())
+    assert out["label"] == "vegetation" and out["confidence"] == 0.9 and out["p_unpaved"] == 0.5
+
+
+def test_occluded_road_read_forces_a_nonvote_after_an_unclear_probe_arbitration():
+    embedder = FakeOcclusionEmbedder([0.1, 0.9])
+    p = probe.Probe(mean=[0], scale=[1], coef=[1], intercept=0, embedder=embedder, road_check=True)
+    out = p.check({"label": "paved", "confidence": 0.9}, Image.new("RGB", (40, 100)), occluded_lane_map())
+    assert out["label"] == "paved" and out["confidence"] == 0.0
+
+
+def test_occluded_road_read_overrides_a_marginal_dirt_probe_flip():
+    embedder = FakeOcclusionEmbedder([0.1, 0.15])
+    p = probe.Probe(mean=[0], scale=[1], coef=[1], intercept=0, embedder=embedder, road_check=True)
+    out = p.check({"label": "paved", "confidence": 0.9}, Image.new("RGB", (40, 100)), occluded_lane_map())
+    assert out["label"] == "paved" and out["confidence"] == 0.85
+
+
+def test_occluded_road_read_preserves_a_strong_dirt_probe_flip():
+    embedder = FakeOcclusionEmbedder([0.1, 0.15])
+    p = probe.Probe(mean=[0], scale=[1], coef=[1], intercept=1, embedder=embedder, road_check=True)
+    out = p.check({"label": "paved", "confidence": 0.9}, Image.new("RGB", (40, 100)), occluded_lane_map())
+    assert out["label"] == "dirt" and out["confidence"] == 0.9
+    assert embedder.calls == []
+
+
+def test_occluded_read_does_not_apply_without_bottom_centre_occlusion():
+    embedder = FakeOcclusionEmbedder([0.1, 0.1, 0.1, 0.1])
+    p = probe.Probe(mean=[0], scale=[1], coef=[1], intercept=0, embedder=embedder, road_check=True)
+    out = p.check({"label": "water", "confidence": 0.8}, Image.new("RGB", (40, 100)), lane_map())
+    assert out == {"label": "water", "confidence": 0.8}
+    assert embedder.calls == []
+

@@ -9,6 +9,8 @@ All 36 unpaved photos in the Mapillary Mekong set (`2026-11-22-mekong-dirt.md`) 
 
 **Trust status: trusted test data.** The owner's blind spot check agrees on 42 of the 43 photos both call clear (98%, the bar is 90%). His answers win where they overlap (`tools.benchmark --prefer`).
 
+Update: the handlebar occlusion read built from this set is scored in [2026-11-27-handlebar-road-read.md](2026-11-27-handlebar-road-read.md).
+
 ## Where the photos come from
 
 The Panoramax API (`api.panoramax.xyz`) lists 62 collections in the delta box (8.5–11.1 N, 104.4–106.9 E). Most are a few photos, panoramas or city streets. One motorbike ride by `Dodko` has about 6,700 photos across the former Bến Tre and Trà Vinh provinces (now Vĩnh Long), 9.74–10.25 N, 106.10–106.35 E. That is 70–125 km south of Đức Hòa. It runs on many narrow lanes through coconut, banana and rice land, including grassy dirt tracks, red earth on new embankments and gravel fill.
