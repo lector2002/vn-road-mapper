@@ -11,6 +11,11 @@ Narrow delta concrete lanes framed by greenery also come out "vegetation" (or a 
 though SegFormer still marks some road pixels. The road check (`road_check`) crops the box around
 those pixels and asks CLIP, zero-shot, whether it shows a paved or an unpaved road. The frame gets a
 label only when CLIP and the road pixels agree (docs/evaluation/2026-11-22-delta-road-crop.md).
+
+Handlebar-mounted phones often hide the bottom centre entirely. When that occlusion is heavy, narrow-road
+CLIP prompts read the lane just above the bike and the wider road crop; the two must agree. This occlusion
+read is reserved for frames SegFormer cannot vote on, or where the dirt probe was about to override a paved
+vote: a direct SegFormer surface vote is left alone (docs/evaluation/2026-11-27-handlebar-road-read.md).
 """
 import json
 from pathlib import Path
@@ -26,11 +31,33 @@ UNPAVED_PROMPTS = ("a photo of a dirt road", "a photo of a gravel road", "a phot
 ROAD_TOP = 0.45
 MIN_ROAD_SHARE = 0.02
 MIN_CONFIDENCE = 0.5
+NARROW_PAVED_PROMPTS = ("a photo of a narrow concrete lane", "a photo of a narrow asphalt road", "a photo of a paved path")
+NARROW_UNPAVED_PROMPTS = ("a photo of a narrow dirt lane", "a photo of a grassy track", "a photo of an unpaved path")
+# A handlebar/phone mount hides the bottom centre. Read the lane just above it, plus the wider road crop;
+# a surface answer needs the two reads not to disagree. The margin keeps uncertain frames from voting.
+OCCLUSION_CROP = (0.22, 0.58, 0.78, 0.88)
+OCCLUSION_MARGIN = 0.2
+MIN_OCCLUSION = 0.5
+# A strong dirt-probe flip is already confident evidence; the occlusion read arbitrates only marginal flips.
+STRONG_DIRT_PROBE = 0.8
+
+
+def crop_fraction(image, fraction):
+    w, h = image.size
+    return image.crop((int(w * fraction[0]), int(h * fraction[1]), int(w * fraction[2]), int(h * fraction[3])))
 
 
 def road_crop(image):
-    w, h = image.size
-    return image.crop((int(w * CROP[0]), int(h * CROP[1]), int(w * CROP[2]), int(h * CROP[3])))
+    return crop_fraction(image, CROP)
+
+
+def bottom_occlusion(class_map, top=0.85, left=0.35, right=0.65):
+    """Share of `other` pixels in the bottom centre, where bike parts block a handlebar camera."""
+    from pipeline.segmentation.segment import CLASSES
+
+    h, w = class_map.shape
+    region = class_map[int(h * top):, int(w * left):int(w * right)]
+    return float((region == CLASSES.index("other")).mean())
 
 
 def road_box(class_map, top=ROAD_TOP, min_share=MIN_ROAD_SHARE):
@@ -77,13 +104,24 @@ class Embedder:
         out = getattr(out, "pooler_output", out)
         return (out / out.norm(dim=-1, keepdim=True)).numpy()
 
-    def p_unpaved(self, image):
-        """Zero-shot P(unpaved road) for an image, from CLIP's paved and unpaved road prompts."""
-        if not hasattr(self, "_prompts"):
-            self._prompts = self.text(PAVED_PROMPTS + UNPAVED_PROMPTS)
-        z = float(self.model.logit_scale.exp()) * (self._prompts @ self.embed([image])[0])
-        e = np.exp(z - z.max())
-        return float(e[len(PAVED_PROMPTS):].sum() / e.sum())
+    def p_unpaved_many(self, images, paved_prompts=PAVED_PROMPTS, unpaved_prompts=UNPAVED_PROMPTS):
+        """Zero-shot P(unpaved road) for images, from CLIP's paved and unpaved road prompts."""
+        if not hasattr(self, "_prompt_cache"):
+            self._prompt_cache = {}
+        key = (paved_prompts, unpaved_prompts)
+        if key not in self._prompt_cache:
+            self._prompt_cache[key] = self.text(paved_prompts + unpaved_prompts)
+        z = float(self.model.logit_scale.detach().exp()) * (self._prompt_cache[key] @ self.embed(images).T)
+        e = np.exp(z - z.max(axis=0, keepdims=True))
+        return [float(v) for v in e[len(paved_prompts):].sum(axis=0) / e.sum(axis=0)]
+
+    def p_unpaved(self, image, paved_prompts=PAVED_PROMPTS, unpaved_prompts=UNPAVED_PROMPTS):
+        """Zero-shot P(unpaved road) for one image."""
+        return self.p_unpaved_many([image], paved_prompts, unpaved_prompts)[0]
+
+
+def surface_vote(summary):
+    return summary["label"] in ("paved", "dirt", "mud") and float(summary["confidence"]) >= MIN_CONFIDENCE
 
 
 def sigmoid(z):
@@ -152,7 +190,30 @@ class Probe:
             self.embedder = Embedder(self.info.get("clip_model", CLIP_MODEL))
         return self.embedder
 
+    def check_occluded_road(self, summary, image, class_map):
+        """Read above a handlebar/phone occlusion; force a non-vote when the two reads disagree."""
+        if bottom_occlusion(class_map) < MIN_OCCLUSION:
+            return None
+        if summary["label"] == "water" and float(summary["confidence"]) >= MIN_CONFIDENCE:
+            return None
+        embedder = self.get_embedder()
+        crops = [crop_fraction(image, fraction) for fraction in (OCCLUSION_CROP, CROP)]
+        ps = embedder.p_unpaved_many(crops, NARROW_PAVED_PROMPTS, NARROW_UNPAVED_PROMPTS)
+        confident = [(p >= 0.5, p) for p in ps if abs(p - 0.5) >= OCCLUSION_MARGIN]
+        if confident and len({unpaved for unpaved, _ in confident}) == 1:
+            unpaved = confident[0][0]
+            confidence = round(min(max(p, 1 - p) for _, p in confident), 3)
+            p_out = round(float(np.mean([p for _, p in confident])), 3)
+            return {**summary, "label": "dirt" if unpaved else "paved", "confidence": confidence,
+                    "p_unpaved": p_out}
+        return {**summary, "confidence": 0.0, "p_unpaved": round(float(np.mean(ps)), 3)}
+
     def check(self, summary, image, class_map=None):
+        can_check_occlusion = class_map is not None and self.road_check
+        if can_check_occlusion and not surface_vote(summary):
+            occluded = self.check_occluded_road(summary, image, class_map)
+            if occluded is not None:
+                return occluded
         if class_map is not None and self.road_checks(summary):
             found = road_box(class_map)
             if found:
@@ -162,7 +223,13 @@ class Probe:
                     return checked
         if not self.checks(summary["label"]):
             return summary
-        return self.relabel(summary, self.get_embedder()([image])[0])
+        relabeled = self.relabel(summary, self.get_embedder()([image])[0])
+        if (can_check_occlusion and relabeled["label"] != summary["label"]
+                and float(relabeled.get("p_unpaved", 0)) < STRONG_DIRT_PROBE):
+            occluded = self.check_occluded_road(summary, image, class_map)
+            if occluded is not None:
+                return occluded
+        return relabeled
 
     def save(self, path):
         data = {"info": self.info, "threshold": self.threshold, "grass_threshold": self.grass_threshold,
