@@ -206,6 +206,10 @@ class Probe:
             p_out = round(float(np.mean([p for _, p in confident])), 3)
             return {**summary, "label": "dirt" if unpaved else "paved", "confidence": confidence,
                     "p_unpaved": p_out}
+        # A confident vegetation frame is still positive evidence that the road is not water;
+        # keep that confidence for fusion's water-share denominator even though it cannot vote a surface.
+        if summary["label"] == "vegetation":
+            return {**summary, "p_unpaved": round(float(np.mean(ps)), 3)}
         return {**summary, "confidence": 0.0, "p_unpaved": round(float(np.mean(ps)), 3)}
 
     def check(self, summary, image, class_map=None):

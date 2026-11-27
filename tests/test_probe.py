@@ -256,11 +256,18 @@ def test_occluded_road_read_preserves_a_direct_surface_vote():
     assert out == {"label": "dirt", "confidence": 0.9}
 
 
-def test_occluded_road_read_forces_a_nonvote_when_crops_disagree():
+def test_occluded_road_read_keeps_vegetation_as_nonwater_evidence_when_crops_disagree():
     embedder = FakeOcclusionEmbedder([0.1, 0.9])
     p = probe.Probe(mean=[0], scale=[1], coef=[1], intercept=0, embedder=embedder, road_check=True)
     out = p.check({"label": "vegetation", "confidence": 0.9}, Image.new("RGB", (40, 100)), occluded_lane_map())
-    assert out["label"] == "vegetation" and out["confidence"] == 0.0
+    assert out["label"] == "vegetation" and out["confidence"] == 0.9 and out["p_unpaved"] == 0.5
+
+
+def test_occluded_road_read_forces_a_nonvote_after_an_unclear_probe_arbitration():
+    embedder = FakeOcclusionEmbedder([0.1, 0.9])
+    p = probe.Probe(mean=[0], scale=[1], coef=[1], intercept=0, embedder=embedder, road_check=True)
+    out = p.check({"label": "paved", "confidence": 0.9}, Image.new("RGB", (40, 100)), occluded_lane_map())
+    assert out["label"] == "paved" and out["confidence"] == 0.0
 
 
 def test_occluded_road_read_overrides_a_marginal_dirt_probe_flip():
