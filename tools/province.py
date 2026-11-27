@@ -312,7 +312,7 @@ def segment(out, workers=2, log=print):
     done = 0
     with ProcessPoolExecutor(workers, mp_context=multiprocessing.get_context("spawn"),
                              initializer=_segment_init, initargs=(threads,)) as ex:
-        for name, n, seconds in ex.map(_segment_one, todo):
+        for name, n, seconds in ex.map(_segment_one, todo, chunksize=1):
             done += n
             log(f"segment {name}: {n} frames in {seconds:.0f} s ({done} so far)")
     return len(todo), done
