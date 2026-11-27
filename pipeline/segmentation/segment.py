@@ -94,23 +94,40 @@ def run(frames_dir, out_dir, overlays=5, model_id=DEFAULT_MODEL, probe=None, seg
     (out_dir / "overlays").mkdir(parents=True, exist_ok=True)
     keep = set(np.linspace(0, len(frames) - 1, min(overlays, len(frames)), dtype=int).tolist()) if overlays else set()
     segmenter = segmenter or Segmenter(model_id)
-    rows = []
-    started = time.perf_counter()
-    for i, path in enumerate(frames):
-        image = Image.open(path).convert("RGB")
-        class_map = segmenter.class_map(image)
-        summary = summarize(class_map)
-        if probe:
-            summary = probe.check(summary, image, class_map)
-        rows.append({"filename": path.name, **summary})
-        if i in keep:
-            overlay(image, class_map, summary).save(out_dir / "overlays" / path.name, quality=85)
-    seconds_per_frame = (time.perf_counter() - started) / len(frames)
     csv_path = out_dir / "segmentation.csv"
+    names = {path.name for path in frames}
+    rows = []
+    seen = set()
+    if csv_path.exists():
+        with open(csv_path, encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                complete = all(row.get(field) not in (None, "") for field in CSV_FIELDS[:-1])
+                if complete and row.get("filename") in names and row["filename"] not in seen:
+                    rows.append(row)
+                    seen.add(row["filename"])
+    started = time.perf_counter()
+    processed = 0
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=CSV_FIELDS, restval="")
         writer.writeheader()
         writer.writerows(rows)
+        f.flush()
+        for i, path in enumerate(frames):
+            if path.name in seen:
+                continue
+            processed += 1
+            image = Image.open(path).convert("RGB")
+            class_map = segmenter.class_map(image)
+            summary = summarize(class_map)
+            if probe:
+                summary = probe.check(summary, image, class_map)
+            row = {"filename": path.name, **summary}
+            writer.writerow(row)
+            f.flush()
+            rows.append(row)
+            if i in keep:
+                overlay(image, class_map, summary).save(out_dir / "overlays" / path.name, quality=85)
+    seconds_per_frame = (time.perf_counter() - started) / processed if processed else 0
     return csv_path, rows, seconds_per_frame
 
 

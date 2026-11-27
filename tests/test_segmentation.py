@@ -77,6 +77,59 @@ def test_overlay_keeps_image_size():
     assert overlay(image, class_map, summarize(class_map)).size == (100, 100)
 
 
+def test_run_keeps_completed_rows_when_a_frame_fails(tmp_path):
+    frames = tmp_path / "frames"
+    frames.mkdir()
+    for i in range(3):
+        Image.new("RGB", (20, 20), "white").save(frames / f"{i}.jpg")
+
+    class CrashSegmenter:
+        def __init__(self):
+            self.count = 0
+
+        def class_map(self, image):
+            self.count += 1
+            if self.count == 2:
+                raise ValueError("bad frame")
+            return frame_with_road("paved", height=10, width=10)
+
+    with pytest.raises(ValueError, match="bad frame"):
+        run(frames, tmp_path / "out", overlays=0, segmenter=CrashSegmenter())
+
+    with open(tmp_path / "out" / "segmentation.csv", encoding="utf-8") as f:
+        assert [r["filename"] for r in csv.DictReader(f)] == ["0.jpg"]
+
+
+def test_run_resumes_after_completed_frames(tmp_path):
+    frames = tmp_path / "frames"
+    frames.mkdir()
+    for i in range(3):
+        Image.new("RGB", (20, 20), "white").save(frames / f"{i}.jpg")
+    out = tmp_path / "out"
+    (out / "overlays").mkdir(parents=True)
+    with open(out / "segmentation.csv", "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["filename", "label", "confidence", *CLASSES, "p_unpaved"])
+        writer.writeheader()
+        writer.writerow({"filename": "0.jpg", "label": "paved", "confidence": 1,
+                         **{c: 0 for c in CLASSES}, "p_unpaved": ""})
+
+    class FakeSegmenter:
+        def __init__(self):
+            self.count = 0
+
+        def class_map(self, image):
+            self.count += 1
+            return frame_with_road("dirt", height=10, width=10)
+
+    fake = FakeSegmenter()
+    _, rows, _ = run(frames, out, overlays=0, segmenter=fake)
+
+    assert fake.count == 2
+    assert [r["filename"] for r in rows] == ["0.jpg", "1.jpg", "2.jpg"]
+    with open(out / "segmentation.csv", encoding="utf-8") as f:
+        assert [r["filename"] for r in csv.DictReader(f)] == ["0.jpg", "1.jpg", "2.jpg"]
+
+
 @pytest.mark.skipif(os.environ.get("RUN_MODEL_TESTS") != "1", reason="downloads a 110 MB model; set RUN_MODEL_TESTS=1")
 def test_real_model_writes_one_row_per_frame_and_overlays(tmp_path):
     frames = tmp_path / "frames"
