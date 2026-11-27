@@ -40,6 +40,9 @@ OCCLUSION_MARGIN = 0.2
 MIN_OCCLUSION = 0.5
 # A strong dirt-probe flip is already confident evidence; the occlusion read arbitrates only marginal flips.
 STRONG_DIRT_PROBE = 0.8
+# When only one occlusion crop is confident, consistent visible road evidence can veto it.
+ROAD_EVIDENCE_MIXED_VETO = 0.7
+ROAD_EVIDENCE_VETO = 0.8
 
 
 def crop_fraction(image, fraction):
@@ -190,6 +193,21 @@ class Probe:
             self.embedder = Embedder(self.info.get("clip_model", CLIP_MODEL))
         return self.embedder
 
+    def visible_road_evidence(self, image, class_map):
+        """Road-box pixels and broad CLIP read, when both are available."""
+        found = road_box(class_map)
+        if not found:
+            return None
+        box, pixel_label = found
+        p = self.get_embedder().p_unpaved(image.crop(box))
+        return pixel_label, "dirt" if p >= 0.5 else "paved", max(p, 1 - p)
+
+    def occluded_nonvote(self, summary, ps):
+        """Keep vegetation as non-water evidence; other labels abstain explicitly."""
+        if summary["label"] == "vegetation":
+            return {**summary, "p_unpaved": round(float(np.mean(ps)), 3)}
+        return {**summary, "confidence": 0.0, "p_unpaved": round(float(np.mean(ps)), 3)}
+
     def check_occluded_road(self, summary, image, class_map):
         """Read above a handlebar/phone occlusion; force a non-vote when the two reads disagree."""
         if bottom_occlusion(class_map) < MIN_OCCLUSION:
@@ -202,15 +220,24 @@ class Probe:
         confident = [(p >= 0.5, p) for p in ps if abs(p - 0.5) >= OCCLUSION_MARGIN]
         if confident and len({unpaved for unpaved, _ in confident}) == 1:
             unpaved = confident[0][0]
+            if len(confident) == 1:
+                evidence = self.visible_road_evidence(image, class_map)
+                if evidence:
+                    pixel_label, road_label, road_confidence = evidence
+                    crop_label = "dirt" if unpaved else "paved"
+                    consistent = pixel_label == road_label
+                    crop_signs_agree = len({p >= 0.5 for p in ps}) == 1
+                    mixed_veto = (not crop_signs_agree and road_confidence >= ROAD_EVIDENCE_MIXED_VETO)
+                    vetoes = consistent and road_label != crop_label and (road_confidence >= ROAD_EVIDENCE_VETO or mixed_veto)
+                    if vetoes:
+                        return self.occluded_nonvote(summary, ps)
             confidence = round(min(max(p, 1 - p) for _, p in confident), 3)
             p_out = round(float(np.mean([p for _, p in confident])), 3)
             return {**summary, "label": "dirt" if unpaved else "paved", "confidence": confidence,
                     "p_unpaved": p_out}
         # A confident vegetation frame is still positive evidence that the road is not water;
         # keep that confidence for fusion's water-share denominator even though it cannot vote a surface.
-        if summary["label"] == "vegetation":
-            return {**summary, "p_unpaved": round(float(np.mean(ps)), 3)}
-        return {**summary, "confidence": 0.0, "p_unpaved": round(float(np.mean(ps)), 3)}
+        return self.occluded_nonvote(summary, ps)
 
     def check(self, summary, image, class_map=None):
         can_check_occlusion = class_map is not None and self.road_check
