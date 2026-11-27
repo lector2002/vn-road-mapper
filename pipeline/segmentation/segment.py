@@ -1,5 +1,6 @@
 import argparse
 import csv
+import os
 import sys
 import time
 from pathlib import Path
@@ -98,20 +99,29 @@ def run(frames_dir, out_dir, overlays=5, model_id=DEFAULT_MODEL, probe=None, seg
     names = {path.name for path in frames}
     rows = []
     seen = set()
-    if csv_path.exists():
+    resumed = csv_path.exists()
+    if resumed:
         with open(csv_path, encoding="utf-8") as f:
             for row in csv.DictReader(f):
                 complete = all(row.get(field) not in (None, "") for field in CSV_FIELDS[:-1])
                 if complete and row.get("filename") in names and row["filename"] not in seen:
                     rows.append(row)
                     seen.add(row["filename"])
+        tmp_path = csv_path.with_name(csv_path.name + ".tmp")
+        with open(tmp_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=CSV_FIELDS, restval="")
+            writer.writeheader()
+            writer.writerows(rows)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, csv_path)
     started = time.perf_counter()
     processed = 0
-    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+    with open(csv_path, "a" if resumed else "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=CSV_FIELDS, restval="")
-        writer.writeheader()
-        writer.writerows(rows)
-        f.flush()
+        if not resumed:
+            writer.writeheader()
+            f.flush()
         for i, path in enumerate(frames):
             if path.name in seen:
                 continue
