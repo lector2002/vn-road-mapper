@@ -32,6 +32,12 @@ def test_score_counts_votes_errors_and_ways():
     assert (result["ways_right"], result["ways_with_eye_majority"]) == (2, 2)
 
 
+def test_zero_confidence_never_votes_even_at_a_zero_cutoff():
+    rows = [row("a", "paved", "paved", confidence=0.0)]
+    result = benchmark.score(rows, min_confidence=0)
+    assert result["voted"] == 0 and result["right"] == 0
+
+
 def test_way_with_a_model_tie_counts_as_wrong():
     rows = [row("a", "unpaved", "paved"), row("a", "unpaved", "dirt")]
     assert benchmark.score(rows)["ways_right"] == 0

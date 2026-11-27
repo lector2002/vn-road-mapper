@@ -218,10 +218,10 @@ def test_frames_the_road_check_leaves_alone_still_get_the_dirt_probe():
     assert len(embedder.crops) == 2
 
 
-def occluded_lane_map(width=40, height=100):
+def occluded_lane_map(pixel_class="paved", width=40, height=100):
     from pipeline.segmentation.segment import CLASSES
 
-    class_map = lane_map(width=width, height=height)
+    class_map = lane_map(pixel_class, width=width, height=height)
     class_map[85:100, 14:26] = CLASSES.index("other")
     return class_map
 
@@ -283,6 +283,37 @@ def test_occluded_road_read_preserves_a_strong_dirt_probe_flip():
     out = p.check({"label": "paved", "confidence": 0.9}, Image.new("RGB", (40, 100)), occluded_lane_map())
     assert out["label"] == "dirt" and out["confidence"] == 0.9
     assert embedder.calls == []
+
+
+def test_occluded_single_crop_abstains_when_visible_road_evidence_disagrees():
+    embedder = FakeOcclusionEmbedder([0.878, 0.429, 0.225])
+    p = probe.Probe(mean=[0], scale=[1], coef=[1], intercept=0, embedder=embedder, road_check=True)
+    out = p.check({"label": "vegetation", "confidence": 0.9}, Image.new("RGB", (40, 100)), occluded_lane_map())
+    assert out["label"] == "vegetation" and out["confidence"] == 0.9 and out["p_unpaved"] == 0.653
+
+
+def test_occluded_single_crop_keeps_supported_dirt_read():
+    class_map = occluded_lane_map("dirt")
+    embedder = FakeOcclusionEmbedder([0.824, 0.341, 0.734])
+    p = probe.Probe(mean=[0], scale=[1], coef=[1], intercept=0, embedder=embedder, road_check=True)
+    out = p.check({"label": "vegetation", "confidence": 0.9}, Image.new("RGB", (40, 100)), class_map)
+    assert out["label"] == "dirt" and out["confidence"] == 0.824
+
+
+def test_occluded_single_crop_ignores_weak_visible_road_veto():
+    class_map = occluded_lane_map("dirt")
+    embedder = FakeOcclusionEmbedder([0.1, 0.55, 0.65])
+    p = probe.Probe(mean=[0], scale=[1], coef=[1], intercept=0, embedder=embedder, road_check=True)
+    out = p.check({"label": "vegetation", "confidence": 0.9}, Image.new("RGB", (40, 100)), class_map)
+    assert out["label"] == "paved" and out["confidence"] == 0.9
+
+
+def test_occluded_single_crop_accepts_strong_visible_road_veto():
+    class_map = occluded_lane_map("dirt")
+    embedder = FakeOcclusionEmbedder([0.1, 0.4, 0.85])
+    p = probe.Probe(mean=[0], scale=[1], coef=[1], intercept=0, embedder=embedder, road_check=True)
+    out = p.check({"label": "vegetation", "confidence": 0.9}, Image.new("RGB", (40, 100)), class_map)
+    assert out["label"] == "vegetation" and out["confidence"] == 0.9
 
 
 def test_occluded_read_does_not_apply_without_bottom_centre_occlusion():

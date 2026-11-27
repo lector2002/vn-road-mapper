@@ -28,6 +28,12 @@ def test_low_confidence_frames_do_not_vote():
     assert ways["1"]["frames"] == 3
 
 
+def test_zero_confidence_never_votes_even_at_a_zero_cutoff():
+    ways = by_way(fuse([frame("1", "paved", 0.0)], min_confidence=0))
+    assert ways["1"]["surface"] == ""
+    assert ways["1"]["votes"] == 0
+
+
 def test_vegetation_and_water_frames_do_not_vote_for_surface_but_water_is_reported():
     ways = by_way(fuse([frame("1", "dirt"), frame("1", "water"), frame("1", "water"), frame("1", "vegetation")]))
     assert ways["1"]["surface"] == "dirt"

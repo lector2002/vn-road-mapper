@@ -33,7 +33,7 @@ def fuse(frames, min_confidence=MIN_CONFIDENCE):
         by_way[f["way_id"]].append(f)
     ways = []
     for way_id, group in by_way.items():
-        sure = [f for f in group if float(f["confidence"]) >= min_confidence]
+        sure = [f for f in group if 0 < float(f["confidence"]) >= min_confidence]
         votes = Counter(f["label"] for f in sure if f["label"] in SURFACES)
         n_votes = sum(votes.values())
         surface, top = votes.most_common(1)[0] if votes else ("", 0)
