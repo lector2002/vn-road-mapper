@@ -292,13 +292,21 @@ def _segment_one(folder):
     return folder.name, len(rows), time.perf_counter() - started
 
 
+def labelled_frames(path):
+    """Filenames with a complete streamed segmentation row; `p_unpaved` is legitimately blank sometimes."""
+    from pipeline.segmentation.segment import CSV_FIELDS
+
+    return {r["filename"] for r in read(path)
+            if all(r.get(field) not in (None, "") for field in CSV_FIELDS[:-1])}
+
+
 def pending_segmentation(out):
     """Runs whose downloaded photos are not all labelled yet, largest first so workers finish together."""
     todo = []
     for folder in runs_of(out):
         names = {r["filename"] for r in present(folder)}
         labelled = folder / "segmentation.csv"
-        if names and not (labelled.exists() and names <= {r["filename"] for r in read(labelled)}):
+        if names and not (labelled.exists() and names <= labelled_frames(labelled)):
             todo.append((len(names), folder))
     return [f for _, f in sorted(todo, key=lambda t: (-t[0], t[1].name))]
 

@@ -168,13 +168,27 @@ def test_pieces_split_where_photos_are_far_apart():
 
 
 def test_pending_segmentation_skips_runs_labelled_beyond_their_frames(tmp_path):
+    from pipeline.segmentation.segment import CLASSES, CSV_FIELDS
+
     run = tmp_path / "runs" / "mapillary-s1"
     (run / "frames").mkdir(parents=True)
     province.write(run / "frames.csv", ["filename"], [{"filename": "0.jpg"}])
     (run / "frames" / "0.jpg").write_bytes(b"x")
     assert province.pending_segmentation(tmp_path) == [run]
-    province.write(run / "segmentation.csv", ["filename"], [{"filename": "0.jpg"}, {"filename": "extra.jpg"}])
+    row = {"filename": "0.jpg", "label": "paved", "confidence": 1, **{c: 0 for c in CLASSES}, "p_unpaved": ""}
+    province.write(run / "segmentation.csv", CSV_FIELDS, [row, {"filename": "extra.jpg"}])
     assert province.pending_segmentation(tmp_path) == []
+
+
+def test_pending_segmentation_retries_an_incomplete_streamed_row(tmp_path):
+    from pipeline.segmentation.segment import CSV_FIELDS
+
+    run = tmp_path / "runs" / "mapillary-s1"
+    (run / "frames").mkdir(parents=True)
+    province.write(run / "frames.csv", ["filename"], [{"filename": "0.jpg"}])
+    (run / "frames" / "0.jpg").write_bytes(b"x")
+    province.write(run / "segmentation.csv", CSV_FIELDS, [{"filename": "0.jpg", "label": "paved"}])
+    assert province.pending_segmentation(tmp_path) == [run]
 
 
 def test_seconds_by_step_sums_reruns(tmp_path, capsys):
