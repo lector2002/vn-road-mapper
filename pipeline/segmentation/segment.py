@@ -83,8 +83,8 @@ class Segmenter:
 
     def class_map(self, image):
         outputs = self.model(**self.processor(images=image, return_tensors="pt"))
-        raw = self.processor.post_process_semantic_segmentation(outputs, target_sizes=[image.size[::-1]])[0]
-        return self.lookup[raw.numpy()]
+        small = self.lookup[outputs.logits[0].argmax(dim=0).numpy()].astype(np.uint8)
+        return np.asarray(Image.fromarray(small).resize(image.size, Image.Resampling.NEAREST), dtype=np.int64)
 
 
 def run(frames_dir, out_dir, overlays=5, model_id=DEFAULT_MODEL, probe=None, segmenter=None):
